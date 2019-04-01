@@ -1,0 +1,372 @@
+Modules list:
+-------------
+ascii.o:
+    CODE              Offs=000000  Size=0000D8  Align=00001  Fill=0000
+    RODATA            Offs=000000  Size=000053  Align=00001  Fill=0000
+    BSS               Offs=000000  Size=000006  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_cursor.o):
+    BSS               Offs=000006  Size=000001  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_hextab.o):
+    RODATA            Offs=000053  Size=000010  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_longminstr.o):
+    RODATA            Offs=000063  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_printf.o):
+    CODE              Offs=0000D8  Size=0003A5  Align=00001  Fill=0000
+    BSS               Offs=000007  Size=00002B  Align=00001  Fill=0000
+    DATA              Offs=000000  Size=000003  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_scrsize.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(addysp.o):
+    CODE              Offs=00047D  Size=00000E  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(axlong.o):
+    CODE              Offs=00048B  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(callmain.o):
+    CODE              Offs=000498  Size=000017  Align=00001  Fill=0000
+    DATA              Offs=000003  Size=000004  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(cgetc.o):
+    CODE              Offs=0004AF  Size=000047  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(clrscr.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(condes.o):
+    CODE              Offs=0004F6  Size=00000C  Align=00001  Fill=0000
+    DATA              Offs=000007  Size=000025  Align=00001  Fill=0000
+    ONCE              Offs=000000  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(conio.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(cprintf.o):
+    CODE              Offs=000502  Size=00002A  Align=00001  Fill=0000
+    BSS               Offs=000032  Size=000001  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(cputc.o):
+    CODE              Offs=00052C  Size=00006F  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(crt0.o):
+    STARTUP           Offs=000000  Size=000033  Align=00001  Fill=0000
+    ONCE              Offs=00000C  Size=00001A  Align=00001  Fill=0000
+    INIT              Offs=000000  Size=00001C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(ctype.o):
+    RODATA            Offs=00006F  Size=000100  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(cursor.o):
+    CODE              Offs=00059B  Size=00000A  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(decsp4.o):
+    CODE              Offs=0005A5  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(decsp6.o):
+    CODE              Offs=0005B2  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(exehdr.o):
+    EXEHDR            Offs=000000  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(gotoxy.o):
+    CODE              Offs=0005BF  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(incsp2.o):
+    CODE              Offs=0005CC  Size=000016  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(kernal.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(kplot.o):
+    CODE              Offs=0005E2  Size=00000B  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lneg.o):
+    CODE              Offs=0005ED  Size=00001E  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(loadaddr.o):
+    LOADADDR          Offs=000000  Size=000002  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lpush.o):
+    CODE              Offs=00060B  Size=000021  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(ltoa.o):
+    CODE              Offs=00062C  Size=000095  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(popa.o):
+    CODE              Offs=0006C1  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(popptr1.o):
+    CODE              Offs=0006CD  Size=00000E  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(push1.o):
+    CODE              Offs=0006DB  Size=000005  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(pushax.o):
+    CODE              Offs=0006E0  Size=00001A  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(scrsize.o):
+    CODE              Offs=0006FA  Size=000013  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(status.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(strlen.o):
+    CODE              Offs=00070D  Size=000016  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(strlower.o):
+    CODE              Offs=000723  Size=000028  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(udiv.o):
+    CODE              Offs=00074B  Size=00004F  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(vcprintf.o):
+    CODE              Offs=00079A  Size=00007A  Align=00001  Fill=0000
+    DATA              Offs=00002C  Size=000008  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(zerobss.o):
+    CODE              Offs=000814  Size=000023  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(zeropage.o):
+    ZEROPAGE          Offs=000000  Size=00001A  Align=00001  Fill=0000
+
+
+Segment list:
+-------------
+Name                   Start     End    Size  Align
+----------------------------------------------------
+ZEROPAGE              000002  00001B  00001A  00001
+LOADADDR              0007FF  000800  000002  00001
+EXEHDR                000801  00080C  00000C  00001
+STARTUP               00080D  00083F  000033  00001
+CODE                  000840  001076  000837  00001
+RODATA                001077  0011E5  00016F  00001
+DATA                  0011E6  001219  000034  00001
+INIT                  00121A  001235  00001C  00001
+BSS                   001236  001268  000033  00001
+ONCE                  001236  00125B  000026  00001
+
+
+Exports list by name:
+---------------------
+BSOUT                     00FFD2 RLA    CURS_X                    0000D3 RLZ    
+CURS_Y                    0000D6 RLZ    PLOT                      000E22 RLA    
+SCREEN                    00FFED RLA    ST                        000090 RLZ    
+__BSS_RUN__               001236 RLA    __BSS_SIZE__              000033 REA    
+__CONSTRUCTOR_COUNT__     000000 REA    __CONSTRUCTOR_TABLE__     00125C RLA    
+__DESTRUCTOR_COUNT__      000000 REA    __DESTRUCTOR_TABLE__      0011E6 RLA    
+__EXEHDR__                000001 REA    __HEADER_LAST__           00080D RLA    
+__HIMEM__                 00D000 REA    __LOADADDR__              000001 REA    
+__MAIN_SIZE__             00C7F3 REA    __MAIN_START__            00080D RLA    
+__ONCE_RUN__              001236 RLA    __STACKSIZE__             000800 REA    
+__STARTUP__               000001 REA    __ctype                   0010E6 RLA    
+__hextab                  0010CA RLA    __longminstr              0010DA RLA    
+__printf                  000A0B RLA    _cgetc                    000CEF RLA    
+_clrscr                   00E544 REA    _cprintf                  000D42 RLA    
+_cputc                    000D71 RLA    _cursor                   000DDB RLA    
+_ltoa                     000E84 RLA    _main                     000855 RLA    
+_screensize               000F3A RLA    _strlen                   000F4D RLA    
+_strlower                 000F63 RLA    _ultoa                    000EC5 RLA    
+_vcprintf                 001024 RLA    addysp                    000CBE RLA    
+axlong                    000CCB RLA    axulong                   000CD1 RLA    
+callmain                  000CD8 RLA    cursor                    00123C RLA    
+decsp4                    000DE5 RLA    decsp6                    000DF2 RLA    
+donelib                   000D36 RLA    gotoxy                    000DFF RLA    
+incsp2                    000E14 RLA    initlib                   001236 RLA    
+negeax                    000E2D RLA    plot                      000DC7 RLA    
+popa                      000F01 RLA    popax                     000E0C RLA    
+popptr1                   000F0D RLA    ptr1                      00000A RLZ    
+ptr2                      00000C RLZ    ptr3                      00000E RLZ    
+ptr4                      000010 RLZ    push1                     000F1B RLA    
+pusha0                    000F22 RLA    pushax                    000F24 RLA    
+pusheax                   000E54 RLA    regbank                   000016 RLZ    
+screensize                00FFED REA    sp                        000002 RLZ    
+sreg                      000004 RLZ    tmp1                      000012 RLZ    
+tosudiva0                 000F8B RLA    zerobss                   001054 RLA    
+
+
+
+Exports list by value:
+----------------------
+__CONSTRUCTOR_COUNT__     000000 REA    __DESTRUCTOR_COUNT__      000000 REA    
+__EXEHDR__                000001 REA    __LOADADDR__              000001 REA    
+__STARTUP__               000001 REA    sp                        000002 RLZ    
+sreg                      000004 RLZ    ptr1                      00000A RLZ    
+ptr2                      00000C RLZ    ptr3                      00000E RLZ    
+ptr4                      000010 RLZ    tmp1                      000012 RLZ    
+regbank                   000016 RLZ    __BSS_SIZE__              000033 REA    
+ST                        000090 RLZ    CURS_X                    0000D3 RLZ    
+CURS_Y                    0000D6 RLZ    __STACKSIZE__             000800 REA    
+__MAIN_START__            00080D RLA    __HEADER_LAST__           00080D RLA    
+_main                     000855 RLA    __printf                  000A0B RLA    
+addysp                    000CBE RLA    axlong                    000CCB RLA    
+axulong                   000CD1 RLA    callmain                  000CD8 RLA    
+_cgetc                    000CEF RLA    donelib                   000D36 RLA    
+_cprintf                  000D42 RLA    _cputc                    000D71 RLA    
+plot                      000DC7 RLA    _cursor                   000DDB RLA    
+decsp4                    000DE5 RLA    decsp6                    000DF2 RLA    
+gotoxy                    000DFF RLA    popax                     000E0C RLA    
+incsp2                    000E14 RLA    PLOT                      000E22 RLA    
+negeax                    000E2D RLA    pusheax                   000E54 RLA    
+_ltoa                     000E84 RLA    _ultoa                    000EC5 RLA    
+popa                      000F01 RLA    popptr1                   000F0D RLA    
+push1                     000F1B RLA    pusha0                    000F22 RLA    
+pushax                    000F24 RLA    _screensize               000F3A RLA    
+_strlen                   000F4D RLA    _strlower                 000F63 RLA    
+tosudiva0                 000F8B RLA    _vcprintf                 001024 RLA    
+zerobss                   001054 RLA    __hextab                  0010CA RLA    
+__longminstr              0010DA RLA    __ctype                   0010E6 RLA    
+__DESTRUCTOR_TABLE__      0011E6 RLA    __BSS_RUN__               001236 RLA    
+initlib                   001236 RLA    __ONCE_RUN__              001236 RLA    
+cursor                    00123C RLA    __CONSTRUCTOR_TABLE__     00125C RLA    
+__MAIN_SIZE__             00C7F3 REA    __HIMEM__                 00D000 REA    
+_clrscr                   00E544 REA    BSOUT                     00FFD2 RLA    
+screensize                00FFED REA    SCREEN                    00FFED RLA    
+
+
+
+Imports list:
+-------------
+BSOUT (kernal.o):
+    crt0.o                    c64/crt0.s(10)
+CURS_X (conio.o):
+    gotoxy.o                  cbm/gotoxy.s(9)
+CURS_Y (conio.o):
+    gotoxy.o                  cbm/gotoxy.s(9)
+PLOT (kplot.o):
+    cputc.o                   c64/cputc.s(11)
+SCREEN (kernal.o):
+    _scrsize.o                c64/_scrsize.s(8)
+ST (status.o):
+    crt0.o                    c64/crt0.s(13)
+__BSS_RUN__ ([linker generated]):
+    zerobss.o                 common/zerobss.s(8)
+__BSS_SIZE__ ([linker generated]):
+    zerobss.o                 common/zerobss.s(8)
+__CONSTRUCTOR_COUNT__ ([linker generated]):
+    condes.o                  runtime/condes.s(18)
+__CONSTRUCTOR_TABLE__ ([linker generated]):
+    condes.o                  runtime/condes.s(18)
+__DESTRUCTOR_COUNT__ ([linker generated]):
+    condes.o                  runtime/condes.s(19)
+__DESTRUCTOR_TABLE__ ([linker generated]):
+    condes.o                  runtime/condes.s(19)
+__EXEHDR__ (exehdr.o):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(6)
+__HEADER_LAST__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(14)
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(14)
+__HIMEM__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(14)
+__LOADADDR__ (loadaddr.o):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(5)
+__MAIN_SIZE__ ([linker generated]):
+    crt0.o                    c64/crt0.s(11)
+__MAIN_START__ ([linker generated]):
+    crt0.o                    c64/crt0.s(11)
+__ONCE_RUN__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+__STACKSIZE__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+__STARTUP__ (crt0.o):
+    ascii.o                   ascii.s(27)
+__ctype (ctype.o):
+    strlower.o                common/strlower.s(13)
+__hextab (_hextab.o):
+    ltoa.o                    common/ltoa.s(10)
+__longminstr (_longminstr.o):
+    ltoa.o                    common/ltoa.s(10)
+__printf (_printf.o):
+    vcprintf.o                conio/vcprintf.s(9)
+_cgetc (cgetc.o):
+    ascii.o                   ascii.s(37)
+_clrscr (clrscr.o):
+    ascii.o                   ascii.s(34)
+_cprintf (cprintf.o):
+    ascii.o                   ascii.s(36)
+_cputc (cputc.o):
+    vcprintf.o                conio/vcprintf.s(9)
+    ascii.o                   ascii.s(35)
+_cursor (cursor.o):
+    ascii.o                   ascii.s(38)
+_ltoa (ltoa.o):
+    _printf.o                 common/_printf.s(12)
+_main (ascii.o):
+    callmain.o                runtime/callmain.s(11)
+_screensize (scrsize.o):
+    ascii.o                   ascii.s(39)
+_strlen (strlen.o):
+    _printf.o                 common/_printf.s(13)
+_strlower (strlower.o):
+    _printf.o                 common/_printf.s(13)
+_ultoa (ltoa.o):
+    _printf.o                 common/_printf.s(12)
+_vcprintf (vcprintf.o):
+    cprintf.o                 conio/cprintf.s(8)
+addysp (addysp.o):
+    cprintf.o                 conio/cprintf.s(8)
+axlong (axlong.o):
+    _printf.o                 common/_printf.s(11)
+axulong (axlong.o):
+    _printf.o                 common/_printf.s(11)
+callmain (callmain.o):
+    crt0.o                    c64/crt0.s(9)
+cursor (_cursor.o):
+    cursor.o                  conio/cursor.s(8)
+    cgetc.o                   c64/cgetc.s(8)
+decsp4 (decsp4.o):
+    lpush.o                   runtime/lpush.s(12)
+decsp6 (decsp6.o):
+    _printf.o                 common/_printf.s(11)
+donelib (condes.o):
+    crt0.o                    c64/crt0.s(8)
+gotoxy (gotoxy.o):
+    cputc.o                   c64/cputc.s(10)
+incsp2 (incsp2.o):
+    popptr1.o                 runtime/popptr1.s(8)
+initlib (condes.o):
+    crt0.o                    c64/crt0.s(8)
+negeax (lneg.o):
+    ltoa.o                    common/ltoa.s(9)
+plot (cputc.o):
+    gotoxy.o                  cbm/gotoxy.s(8)
+popa (popa.o):
+    gotoxy.o                  cbm/gotoxy.s(8)
+popax (incsp2.o):
+    ltoa.o                    common/ltoa.s(9)
+    _printf.o                 common/_printf.s(11)
+    vcprintf.o                conio/vcprintf.s(8)
+popptr1 (popptr1.o):
+    ltoa.o                    common/ltoa.s(9)
+    vcprintf.o                conio/vcprintf.s(8)
+    udiv.o                    runtime/udiv.s(9)
+    scrsize.o                 conio/scrsize.s(9)
+ptr1 (zeropage.o):
+    strlower.o                common/strlower.s(14)
+    popptr1.o                 runtime/popptr1.s(9)
+    ltoa.o                    common/ltoa.s(11)
+    _printf.o                 /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(12)
+    zerobss.o                 common/zerobss.s(9)
+    vcprintf.o                conio/vcprintf.s(10)
+    udiv.o                    runtime/udiv.s(10)
+    scrsize.o                 conio/scrsize.s(11)
+    cprintf.o                 conio/cprintf.s(9)
+ptr2 (zeropage.o):
+    strlower.o                common/strlower.s(14)
+    strlen.o                  common/strlen.s(12)
+    ltoa.o                    common/ltoa.s(11)
+    _printf.o                 /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(12)
+    vcprintf.o                conio/vcprintf.s(10)
+    scrsize.o                 conio/scrsize.s(11)
+ptr3 (zeropage.o):
+    ltoa.o                    common/ltoa.s(11)
+    vcprintf.o                conio/vcprintf.s(10)
+ptr4 (zeropage.o):
+    udiv.o                    runtime/udiv.s(10)
+push1 (push1.o):
+    _printf.o                 common/_printf.s(11)
+pusha0 (pushax.o):
+    push1.o                   runtime/push1.s(8)
+    ascii.o                   ascii.s(298)
+pushax (pushax.o):
+    callmain.o                runtime/callmain.s(11)
+    _printf.o                 common/_printf.s(11)
+    vcprintf.o                conio/vcprintf.s(8)
+    cprintf.o                 conio/cprintf.s(8)
+    ascii.o                   ascii.s(298)
+pusheax (lpush.o):
+    _printf.o                 common/_printf.s(11)
+regbank (zeropage.o):
+    _printf.o                 /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(14)
+screensize (_scrsize.o):
+    scrsize.o                 conio/scrsize.s(10)
+sp (zeropage.o):
+    decsp4.o                  runtime/decsp4.s(8)
+    popptr1.o                 runtime/popptr1.s(9)
+    lpush.o                   runtime/lpush.s(13)
+    incsp2.o                  runtime/incsp2.s(8)
+    decsp6.o                  runtime/decsp6.s(8)
+    addysp.o                  runtime/addysp.s(8)
+    _printf.o                 /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(11)
+    vcprintf.o                conio/vcprintf.s(10)
+    pushax.o                  runtime/pushax.s(8)
+    popa.o                    runtime/popa.s(8)
+    crt0.o                    /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(11)
+    cprintf.o                 conio/cprintf.s(9)
+sreg (zeropage.o):
+    lneg.o                    runtime/lneg.s(11)
+    ltoa.o                    common/ltoa.s(11)
+    lpush.o                   runtime/lpush.s(13)
+    axlong.o                  runtime/axlong.s(9)
+    _printf.o                 /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(11)
+    udiv.o                    runtime/udiv.s(10)
+tmp1 (zeropage.o):
+    ltoa.o                    common/ltoa.s(11)
+    _printf.o                 /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(13)
+    vcprintf.o                conio/vcprintf.s(10)
+tosudiva0 (udiv.o):
+    ascii.o                   ascii.s(298)
+zerobss (zerobss.o):
+    crt0.o                    c64/crt0.s(9)
+
