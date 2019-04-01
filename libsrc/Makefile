@@ -16,6 +16,7 @@ GEOS = geos-apple \
 
 TARGETS = apple2       \
           apple2enh    \
+          apple1       \
           atari        \
           atarixl      \
           atari2600    \
