@@ -201,8 +201,7 @@ EXELIST_atari2600 = \
 
 EXELIST_bbc =      \
         ascii      \
-        hello      \
-        sieve
+        hello     
 
 EXELIST_bbcmaster = $(EXELIST_bbc)
 

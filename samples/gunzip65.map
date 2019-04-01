@@ -1,0 +1,824 @@
+Modules list:
+-------------
+gunzip65.o:
+    CODE              Offs=000000  Size=0004E7  Align=00001  Fill=0000
+    RODATA            Offs=000000  Size=000128  Align=00001  Fill=0000
+    BSS               Offs=000000  Size=0065F4  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_directerrno.o):
+    CODE              Offs=0004E7  Size=00000A  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_fdesc.o):
+    CODE              Offs=0004F1  Size=00001D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_file.o):
+    DATA              Offs=000000  Size=00001E  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_fopen.o):
+    CODE              Offs=00050E  Size=00007B  Align=00001  Fill=0000
+    BSS               Offs=0065F4  Size=000002  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_mappederrno.o):
+    CODE              Offs=000589  Size=000010  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_oserror.o):
+    BSS               Offs=0065F6  Size=000001  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(_seterrno.o):
+    CODE              Offs=000599  Size=000009  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(add.o):
+    CODE              Offs=0005A2  Size=00001C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(addeqsp.o):
+    CODE              Offs=0005BE  Size=000011  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(addysp.o):
+    CODE              Offs=0005CF  Size=00000E  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(atexit.o):
+    CODE              Offs=0005DD  Size=000038  Align=00001  Fill=0000
+    BSS               Offs=0065F7  Size=00000B  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(call.o):
+    CODE              Offs=000615  Size=000007  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(callmain.o):
+    CODE              Offs=00061C  Size=000017  Align=00001  Fill=0000
+    DATA              Offs=00001E  Size=000004  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(close.o):
+    CODE              Offs=000633  Size=000038  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(condes.o):
+    CODE              Offs=00066B  Size=00000C  Align=00001  Fill=0000
+    DATA              Offs=000022  Size=000025  Align=00001  Fill=0000
+    ONCE              Offs=000000  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(crc32.o):
+    CODE              Offs=000677  Size=0000B4  Align=00001  Fill=0000
+    BSS               Offs=006602  Size=000400  Align=00001  Fill=0000
+    DATA              Offs=000047  Size=000001  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(crt0.o):
+    STARTUP           Offs=000000  Size=000033  Align=00001  Fill=0000
+    ONCE              Offs=00000C  Size=00001A  Align=00001  Fill=0000
+    INIT              Offs=000000  Size=00001C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(decsp1.o):
+    CODE              Offs=00072B  Size=000009  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(decsp2.o):
+    CODE              Offs=000734  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(decsp4.o):
+    CODE              Offs=000741  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(decsp6.o):
+    CODE              Offs=00074E  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(devnum.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(diskcmd.o):
+    CODE              Offs=00075B  Size=0000C4  Align=00001  Fill=0000
+    BSS               Offs=006A02  Size=000017  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(doesclrscr.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(errno.o):
+    BSS               Offs=006A19  Size=000002  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(exehdr.o):
+    EXEHDR            Offs=000000  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(fclose.o):
+    CODE              Offs=00081F  Size=000022  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(fgetc.o):
+    CODE              Offs=000841  Size=00008C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(fgets.o):
+    CODE              Offs=0008CD  Size=0000B3  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(filedes.o):
+    CODE              Offs=000980  Size=00000E  Align=00001  Fill=0000
+    DATA              Offs=000048  Size=000010  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(filename.o):
+    CODE              Offs=00098E  Size=0000A0  Align=00001  Fill=0000
+    BSS               Offs=006A1B  Size=000003  Align=00001  Fill=0000
+    DATA              Offs=000058  Size=000024  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(filetype.o):
+    DATA              Offs=00007C  Size=000001  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(filevars.o):
+    INIT              Offs=00001C  Size=000001  Align=00001  Fill=0000
+    ONCE              Offs=000026  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(fopen.o):
+    CODE              Offs=000A2E  Size=000018  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(fread.o):
+    CODE              Offs=000A46  Size=0000D3  Align=00001  Fill=0000
+    BSS               Offs=006A1E  Size=000003  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(fwrite.o):
+    CODE              Offs=000B19  Size=00007B  Align=00001  Fill=0000
+    BSS               Offs=006A21  Size=000002  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(getchar.o):
+    CODE              Offs=000B94  Size=000009  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(incsp2.o):
+    CODE              Offs=000B9D  Size=000016  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(incsp3.o):
+    CODE              Offs=000BB3  Size=000005  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(incsp4.o):
+    CODE              Offs=000BB8  Size=000005  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(incsp6.o):
+    CODE              Offs=000BBD  Size=000005  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(inflatemem.o):
+    CODE              Offs=000BC2  Size=0001F7  Align=00001  Fill=0000
+    RODATA            Offs=000128  Size=000020  Align=00001  Fill=0000
+    BSS               Offs=006A23  Size=0002FD  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(kernal.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(ladd.o):
+    CODE              Offs=000DB9  Size=000025  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lcmp.o):
+    CODE              Offs=000DDE  Size=00003B  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lcompl.o):
+    CODE              Offs=000E19  Size=000015  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(ldaxsp.o):
+    CODE              Offs=000E2E  Size=000009  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(ldeaxysp.o):
+    CODE              Offs=000E37  Size=000013  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(leaaxsp.o):
+    CODE              Offs=000E4A  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lne.o):
+    CODE              Offs=000E56  Size=000006  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(loadaddr.o):
+    LOADADDR          Offs=000000  Size=000002  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lpop.o):
+    CODE              Offs=000E5C  Size=000015  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(lpush.o):
+    CODE              Offs=000E71  Size=000021  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(makebool.o):
+    CODE              Offs=000E92  Size=00002C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(memcpy.o):
+    CODE              Offs=000EBE  Size=00003C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(memmove.o):
+    CODE              Offs=000EFA  Size=000050  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(mul.o):
+    CODE              Offs=000F4A  Size=000045  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(mul8.o):
+    CODE              Offs=000F8F  Size=00003A  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(open.o):
+    CODE              Offs=000FC9  Size=0000BE  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(oserror.o):
+    CODE              Offs=001087  Size=000016  Align=00001  Fill=0000
+    RODATA            Offs=000148  Size=00005A  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(popptr1.o):
+    CODE              Offs=00109D  Size=00000E  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(pushax.o):
+    CODE              Offs=0010AB  Size=00001A  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(pushwsp.o):
+    CODE              Offs=0010C5  Size=00001C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(puts.o):
+    CODE              Offs=0010E1  Size=000069  Align=00001  Fill=0000
+    DATA              Offs=00007D  Size=000001  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(read.o):
+    CODE              Offs=00114A  Size=00007E  Align=00001  Fill=0000
+    BSS               Offs=006D20  Size=000001  Align=00001  Fill=0000
+    ONCE              Offs=000032  Size=00000C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(regswap2.o):
+    CODE              Offs=0011C8  Size=000016  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(return0.o):
+    CODE              Offs=0011DE  Size=000004  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(rwcommon.o):
+    CODE              Offs=0011E2  Size=00001C  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(scratch.o):
+    CODE              Offs=0011FE  Size=000019  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(status.o):
+/opt/cc-6502/share/cc65/lib/c64.lib(staxsp.o):
+    CODE              Offs=001217  Size=00000B  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(steaxsp.o):
+    CODE              Offs=001222  Size=000015  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(strlen.o):
+    CODE              Offs=001237  Size=000016  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(subeqsp.o):
+    CODE              Offs=00124D  Size=000015  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(subysp.o):
+    CODE              Offs=001262  Size=00000D  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(toslong.o):
+    CODE              Offs=00126F  Size=000038  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(udiv.o):
+    CODE              Offs=0012A7  Size=00004F  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(write.o):
+    CODE              Offs=0012F6  Size=000054  Align=00001  Fill=0000
+    ONCE              Offs=00003E  Size=000011  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(zerobss.o):
+    CODE              Offs=00134A  Size=000023  Align=00001  Fill=0000
+/opt/cc-6502/share/cc65/lib/c64.lib(zeropage.o):
+    ZEROPAGE          Offs=000000  Size=00001A  Align=00001  Fill=0000
+
+
+Segment list:
+-------------
+Name                   Start     End    Size  Align
+----------------------------------------------------
+ZEROPAGE              000002  00001B  00001A  00001
+LOADADDR              0007FF  000800  000002  00001
+EXEHDR                000801  00080C  00000C  00001
+STARTUP               00080D  00083F  000033  00001
+CODE                  000840  001BAC  00136D  00001
+RODATA                001BAD  001D52  0001A6  00001
+DATA                  001D53  001DD0  00007E  00001
+INIT                  001DD1  001DED  00001D  00001
+BSS                   001DEE  008B0E  006D21  00001
+ONCE                  001DEE  001E42  000055  00001
+
+
+Exports list by name:
+---------------------
+BASIN                     00FFCF RLA    BSOUT                     00FFD2 RLA    
+CHKIN                     00FFC6 RLA    CKOUT                     00FFC9 RLA    
+CLOSE                     00FFC3 RLA    CLRCH                     00FFCC RLA    
+OPEN                      00FFC0 RLA    READST                    00FFB7 RLA    
+SETLFS                    00FFBA RLA    SETNAM                    00FFBD RLA    
+ST                        000090 RLZ    __BSS_RUN__               001DEE RLA    
+__BSS_SIZE__              006D21 REA    __CONSTRUCTOR_COUNT__     000003 REA    
+__CONSTRUCTOR_TABLE__     001E3D RLA    __DESTRUCTOR_COUNT__      000002 REA    
+__DESTRUCTOR_TABLE__      001D4F RLA    __EXEHDR__                000001 REA    
+__HEADER_LAST__           00080D RLA    __HIMEM__                 00D000 REA    
+__LOADADDR__              000001 REA    __MAIN_SIZE__             00C7F3 REA    
+__MAIN_START__            00080D RLA    __ONCE_RUN__              001DEE RLA    
+__STACKSIZE__             000800 REA    __STARTUP__               000001 REA    
+__directerrno             000D27 RLA    __errno                   008807 RLA    
+__fdesc                   000D31 RLA    __filetab                 001D53 RLA    
+__filetype                001DCF RLA    __fopen                   000D4E RLA    
+__mappederrno             000DC9 RLA    __oserror                 0083E4 RLA    
+__osmaperrno              0018C7 RLA    __seterrno                000DD9 RLA    
+_atexit                   000E1D RLA    _close                    000E73 RLA    
+_crc32                    000F09 RLA    _doesclrscrafterexit      001A1E REA    
+_fclose                   00105F RLA    _fgetc                    001081 RLA    
+_fgets                    00110D RLA    _fopen                    00126E RLA    
+_fread                    001286 RLA    _fwrite                   001359 RLA    
+_getchar                  0013D4 RLA    _inflatemem               001402 RLA    
+_main                     000BDD RLA    _memmove                  00173A RLA    
+_open                     00181D RLA    _puts                     001921 RLA    
+_read                     00198A RLA    _stdin                    001D6B RLA    
+_stdout                   001D6D RLA    _strlen                   001A77 RLA    
+_write                    001B36 RLA    addeqysp                  000E00 RLA    
+addysp                    000E10 RLA    addysp1                   000E0F RLA    
+boolne                    0016D2 RLA    callax                    000E55 RLA    
+callmain                  000E5C RLA    closeallfiles             001809  LAI   
+closecmdchannel           000FD1 RLA    compleax                  001659 RLA    
+curunit                   001DED RLA    decsp1                    000F6B RLA    
+decsp2                    000F74 RLA    decsp4                    000F81 RLA    
+decsp6                    000F8E RLA    devnum                    0000BA RLZ    
+doatexit                  000E3D  LAI   donelib                   000EAB RLA    
+fdtab                     001D9B RLA    fnaddmode                 00125D RLA    
+fncmd                     001DAB RLA    fncomplete                001255 RLA    
+fnisfile                  00880B RLA    fnlen                     00880A RLA    
+fnparse                   0011E9 RLA    fnset                     00124B RLA    
+fnunit                    008809 RLA    freefd                    0011C0 RLA    
+incsp2                    0013E5 RLA    incsp3                    0013F3 RLA    
+incsp4                    0013F8 RLA    incsp6                    0013FD RLA    
+initcurunit               001E14  LAI   initlib                   001DEE RLA    
+initstdin                 001E20  LAI   initstdout                001E2C  LAI   
+ldax0sp                   00166E RLA    ldaxysp                   001670 RLA    
+ldeaxysp                  001679 RLA    leaa0sp                   00168A RLA    
+memcpy_getparams          001727 RLA    memcpy_upwards            001701 RLA    
+mul8x16                   0017D1 RLA    mul8x16a                  0017DB RLA    
+opencmdchannel            000FA4 RLA    popax                     0013DD RLA    
+popeax                    00169C RLA    popptr1                   0018DD RLA    
+ptr1                      00000A RLZ    ptr2                      00000C RLZ    
+ptr3                      00000E RLZ    ptr4                      000010 RLZ    
+pusha0                    0018ED RLA    pushax                    0018EF RLA    
+pusheax                   0016BA RLA    pushwysp                  001907 RLA    
+readdiskerror             000FEC RLA    regbank                   000016 RLZ    
+regsave                   000006 RLZ    regswap2                  001A08 RLA    
+return0                   001A1E RLA    rwcommon                  001A22 RLA    
+scratch                   001A3E RLA    sp                        000002 RLZ    
+sreg                      000004 RLZ    stax0sp                   001A57 RLA    
+staxysp                   001A59 RLA    steaxysp                  001A64 RLA    
+subeqysp                  001A8F RLA    subysp                    001AA2 RLA    
+tmp1                      000012 RLZ    tmp2                      000013 RLZ    
+tmp3                      000014 RLZ    tosaddax                  000DE4 RLA    
+tosaddeax                 0015FF RLA    toslcmp                   00161E RLA    
+tosneeax                  001696 RLA    tosudivax                 001AE9 RLA    
+tosulong                  001AAF RLA    tosumulax                 00178A RLA    
+unittab                   001DA3 RLA    writefndiskcmd            001024 RLA    
+zerobss                   001B8A RLA    
+
+
+Exports list by value:
+----------------------
+__EXEHDR__                000001 REA    __STARTUP__               000001 REA    
+__LOADADDR__              000001 REA    sp                        000002 RLZ    
+__DESTRUCTOR_COUNT__      000002 REA    __CONSTRUCTOR_COUNT__     000003 REA    
+sreg                      000004 RLZ    regsave                   000006 RLZ    
+ptr1                      00000A RLZ    ptr2                      00000C RLZ    
+ptr3                      00000E RLZ    ptr4                      000010 RLZ    
+tmp1                      000012 RLZ    tmp2                      000013 RLZ    
+tmp3                      000014 RLZ    regbank                   000016 RLZ    
+ST                        000090 RLZ    devnum                    0000BA RLZ    
+__STACKSIZE__             000800 REA    __MAIN_START__            00080D RLA    
+__HEADER_LAST__           00080D RLA    _main                     000BDD RLA    
+__directerrno             000D27 RLA    __fdesc                   000D31 RLA    
+__fopen                   000D4E RLA    __mappederrno             000DC9 RLA    
+__seterrno                000DD9 RLA    tosaddax                  000DE4 RLA    
+addeqysp                  000E00 RLA    addysp1                   000E0F RLA    
+addysp                    000E10 RLA    _atexit                   000E1D RLA    
+doatexit                  000E3D  LAI   callax                    000E55 RLA    
+callmain                  000E5C RLA    _close                    000E73 RLA    
+donelib                   000EAB RLA    _crc32                    000F09 RLA    
+decsp1                    000F6B RLA    decsp2                    000F74 RLA    
+decsp4                    000F81 RLA    decsp6                    000F8E RLA    
+opencmdchannel            000FA4 RLA    closecmdchannel           000FD1 RLA    
+readdiskerror             000FEC RLA    writefndiskcmd            001024 RLA    
+_fclose                   00105F RLA    _fgetc                    001081 RLA    
+_fgets                    00110D RLA    freefd                    0011C0 RLA    
+fnparse                   0011E9 RLA    fnset                     00124B RLA    
+fncomplete                001255 RLA    fnaddmode                 00125D RLA    
+_fopen                    00126E RLA    _fread                    001286 RLA    
+_fwrite                   001359 RLA    _getchar                  0013D4 RLA    
+popax                     0013DD RLA    incsp2                    0013E5 RLA    
+incsp3                    0013F3 RLA    incsp4                    0013F8 RLA    
+incsp6                    0013FD RLA    _inflatemem               001402 RLA    
+tosaddeax                 0015FF RLA    toslcmp                   00161E RLA    
+compleax                  001659 RLA    ldax0sp                   00166E RLA    
+ldaxysp                   001670 RLA    ldeaxysp                  001679 RLA    
+leaa0sp                   00168A RLA    tosneeax                  001696 RLA    
+popeax                    00169C RLA    pusheax                   0016BA RLA    
+boolne                    0016D2 RLA    memcpy_upwards            001701 RLA    
+memcpy_getparams          001727 RLA    _memmove                  00173A RLA    
+tosumulax                 00178A RLA    mul8x16                   0017D1 RLA    
+mul8x16a                  0017DB RLA    closeallfiles             001809  LAI   
+_open                     00181D RLA    __osmaperrno              0018C7 RLA    
+popptr1                   0018DD RLA    pusha0                    0018ED RLA    
+pushax                    0018EF RLA    pushwysp                  001907 RLA    
+_puts                     001921 RLA    _read                     00198A RLA    
+regswap2                  001A08 RLA    _doesclrscrafterexit      001A1E REA    
+return0                   001A1E RLA    rwcommon                  001A22 RLA    
+scratch                   001A3E RLA    stax0sp                   001A57 RLA    
+staxysp                   001A59 RLA    steaxysp                  001A64 RLA    
+_strlen                   001A77 RLA    subeqysp                  001A8F RLA    
+subysp                    001AA2 RLA    tosulong                  001AAF RLA    
+tosudivax                 001AE9 RLA    _write                    001B36 RLA    
+zerobss                   001B8A RLA    __DESTRUCTOR_TABLE__      001D4F RLA    
+__filetab                 001D53 RLA    _stdin                    001D6B RLA    
+_stdout                   001D6D RLA    fdtab                     001D9B RLA    
+unittab                   001DA3 RLA    fncmd                     001DAB RLA    
+__filetype                001DCF RLA    curunit                   001DED RLA    
+__ONCE_RUN__              001DEE RLA    __BSS_RUN__               001DEE RLA    
+initlib                   001DEE RLA    initcurunit               001E14  LAI   
+initstdin                 001E20  LAI   initstdout                001E2C  LAI   
+__CONSTRUCTOR_TABLE__     001E3D RLA    __BSS_SIZE__              006D21 REA    
+__oserror                 0083E4 RLA    __errno                   008807 RLA    
+fnunit                    008809 RLA    fnlen                     00880A RLA    
+fnisfile                  00880B RLA    __MAIN_SIZE__             00C7F3 REA    
+__HIMEM__                 00D000 REA    READST                    00FFB7 RLA    
+SETLFS                    00FFBA RLA    SETNAM                    00FFBD RLA    
+OPEN                      00FFC0 RLA    CLOSE                     00FFC3 RLA    
+CHKIN                     00FFC6 RLA    CKOUT                     00FFC9 RLA    
+CLRCH                     00FFCC RLA    BASIN                     00FFCF RLA    
+BSOUT                     00FFD2 RLA    
+
+
+Imports list:
+-------------
+BASIN (kernal.o):
+    diskcmd.o                 cbm/cbm.inc(47)
+    read.o                    cbm/cbm.inc(47)
+BSOUT (kernal.o):
+    diskcmd.o                 cbm/cbm.inc(49)
+    write.o                   cbm/cbm.inc(49)
+    read.o                    cbm/cbm.inc(49)
+    crt0.o                    c64/crt0.s(10)
+CHKIN (kernal.o):
+    diskcmd.o                 cbm/cbm.inc(44)
+    read.o                    cbm/cbm.inc(44)
+CKOUT (kernal.o):
+    diskcmd.o                 cbm/cbm.inc(45)
+    write.o                   cbm/cbm.inc(45)
+CLOSE (kernal.o):
+    open.o                    cbm/cbm.inc(36)
+    diskcmd.o                 cbm/cbm.inc(36)
+    close.o                   cbm/cbm.inc(36)
+CLRCH (kernal.o):
+    diskcmd.o                 cbm/cbm.inc(46)
+    write.o                   cbm/cbm.inc(46)
+    read.o                    cbm/cbm.inc(46)
+OPEN (kernal.o):
+    open.o                    cbm/cbm.inc(35)
+    diskcmd.o                 cbm/cbm.inc(35)
+    write.o                   cbm/cbm.inc(35)
+    read.o                    cbm/cbm.inc(35)
+READST (kernal.o):
+    write.o                   cbm/cbm.inc(32)
+    read.o                    cbm/cbm.inc(32)
+SETLFS (kernal.o):
+    open.o                    cbm/cbm.inc(33)
+    diskcmd.o                 cbm/cbm.inc(33)
+    write.o                   cbm/cbm.inc(33)
+    read.o                    cbm/cbm.inc(33)
+SETNAM (kernal.o):
+    filename.o                cbm/cbm.inc(34)
+    diskcmd.o                 cbm/cbm.inc(34)
+ST (status.o):
+    crt0.o                    c64/crt0.s(13)
+__BSS_RUN__ ([linker generated]):
+    zerobss.o                 common/zerobss.s(8)
+__BSS_SIZE__ ([linker generated]):
+    zerobss.o                 common/zerobss.s(8)
+__CONSTRUCTOR_COUNT__ ([linker generated]):
+    condes.o                  runtime/condes.s(18)
+__CONSTRUCTOR_TABLE__ ([linker generated]):
+    condes.o                  runtime/condes.s(18)
+__DESTRUCTOR_COUNT__ ([linker generated]):
+    condes.o                  runtime/condes.s(19)
+__DESTRUCTOR_TABLE__ ([linker generated]):
+    condes.o                  runtime/condes.s(19)
+__EXEHDR__ (exehdr.o):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(6)
+__HEADER_LAST__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(14)
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(14)
+__HIMEM__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(14)
+__LOADADDR__ (loadaddr.o):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(5)
+__MAIN_SIZE__ ([linker generated]):
+    crt0.o                    c64/crt0.s(11)
+__MAIN_START__ ([linker generated]):
+    crt0.o                    c64/crt0.s(11)
+__ONCE_RUN__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+__STACKSIZE__ ([linker generated]):
+    [linker generated]        /opt/cc-6502/share/cc65/cfg/c64.cfg(15)
+__STARTUP__ (crt0.o):
+    gunzip65.o                gunzip65.s(21)
+__directerrno (_directerrno.o):
+    open.o                    /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+    close.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+    write.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+    read.o                    /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+__errno (errno.o):
+    _seterrno.o               /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(7)
+__fdesc (_fdesc.o):
+    fopen.o                   common/fopen.s(10)
+__filetab (_file.o):
+    _fdesc.o                  /Users/thierry/Projects/Devel/cc65/asminc/_file.inc(25)
+__filetype (filetype.o):
+    filename.o                cbm/filename.s(11)
+__fopen (_fopen.o):
+    fopen.o                   common/fopen.s(10)
+__mappederrno (_mappederrno.o):
+    open.o                    /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+    close.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+    write.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+    read.o                    /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(10)
+__oserror (_oserror.o):
+    open.o                    /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(7)
+    _mappederrno.o            /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(7)
+    _directerrno.o            /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(7)
+    write.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(7)
+    read.o                    /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(7)
+__osmaperrno (oserror.o):
+    _mappederrno.o            /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(8)
+__seterrno (_seterrno.o):
+    _mappederrno.o            /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    _fopen.o                  /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    _directerrno.o            /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    fwrite.o                  /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    fread.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    fopen.o                   /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    fgets.o                   ../libwrk/c64/fgets.s(15)
+    fclose.o                  /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+    atexit.o                  /Users/thierry/Projects/Devel/cc65/asminc/errno.inc(9)
+_atexit (atexit.o):
+    gunzip65.o                gunzip65.s(48)
+_close (close.o):
+    open.o                    cbm/open.s(14)
+    fclose.o                  common/fclose.s(10)
+_crc32 (crc32.o):
+    gunzip65.o                gunzip65.s(47)
+_doesclrscrafterexit (doesclrscr.o):
+    gunzip65.o                gunzip65.s(49)
+_fclose (fclose.o):
+    gunzip65.o                gunzip65.s(37)
+_fgetc (fgetc.o):
+    getchar.o                 ../libwrk/c64/getchar.s(14)
+    fgets.o                   ../libwrk/c64/fgets.s(13)
+_fgets (fgets.o):
+    gunzip65.o                gunzip65.s(38)
+_fopen (fopen.o):
+    gunzip65.o                gunzip65.s(39)
+_fread (fread.o):
+    gunzip65.o                gunzip65.s(40)
+_fwrite (fwrite.o):
+    gunzip65.o                gunzip65.s(41)
+_getchar (getchar.o):
+    gunzip65.o                gunzip65.s(42)
+_inflatemem (inflatemem.o):
+    gunzip65.o                gunzip65.s(46)
+_main (gunzip65.o):
+    callmain.o                runtime/callmain.s(11)
+_memmove (memmove.o):
+    gunzip65.o                gunzip65.s(45)
+_open (open.o):
+    _fopen.o                  common/_fopen.s(10)
+_puts (puts.o):
+    gunzip65.o                gunzip65.s(43)
+_read (read.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(14)
+    fread.o                   common/fread.s(10)
+_stdin (_file.o):
+    getchar.o                 ../libwrk/c64/getchar.s(13)
+    gunzip65.o                gunzip65.s(36)
+_stdout (_file.o):
+    puts.o                    ../libwrk/c64/puts.s(13)
+_strlen (strlen.o):
+    puts.o                    ../libwrk/c64/puts.s(15)
+_write (write.o):
+    puts.o                    ../libwrk/c64/puts.s(16)
+    fwrite.o                  common/fwrite.s(10)
+addeqysp (addeqsp.o):
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+addysp (addysp.o):
+    open.o                    cbm/open.s(10)
+    incsp3.o                  runtime/incsp3.s(8)
+    incsp6.o                  runtime/incsp6.s(8)
+    incsp4.o                  runtime/incsp4.s(8)
+    fwrite.o                  common/fwrite.s(11)
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+    gunzip65.o                gunzip65.s(1110)
+addysp1 (addysp.o):
+    ladd.o                    runtime/ladd.s(8)
+boolne (makebool.o):
+    lne.o                     runtime/lne.s(8)
+callax (call.o):
+    atexit.o                  common/atexit.s(9)
+callmain (callmain.o):
+    crt0.o                    c64/crt0.s(9)
+closecmdchannel (diskcmd.o):
+    scratch.o                 cbm/scratch.s(8)
+    open.o                    cbm/open.s(12)
+    close.o                   cbm/close.s(9)
+compleax (lcompl.o):
+    crc32.o                   zlib/crc32.s(11)
+curunit (filevars.o):
+    filename.o                cbm/filename.s(11)
+decsp1 (decsp1.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(96)
+decsp2 (decsp2.o):
+    toslong.o                 runtime/toslong.s(8)
+decsp4 (decsp4.o):
+    lpush.o                   runtime/lpush.s(12)
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+    gunzip65.o                gunzip65.s(1110)
+    gunzip65.o                gunzip65.s(1110)
+decsp6 (decsp6.o):
+    gunzip65.o                gunzip65.s(1110)
+    gunzip65.o                gunzip65.s(1110)
+devnum (devnum.o):
+    filevars.o                cbm/filevars.s(9)
+donelib (condes.o):
+    crt0.o                    c64/crt0.s(8)
+fdtab (filedes.o):
+    open.o                    cbm/filedes.inc(7)
+    close.o                   cbm/filedes.inc(7)
+    write.o                   cbm/filedes.inc(7)
+    read.o                    cbm/filedes.inc(7)
+fnaddmode (filename.o):
+    open.o                    cbm/open.s(11)
+fncmd (filename.o):
+    scratch.o                 cbm/scratch.s(9)
+    diskcmd.o                 cbm/diskcmd.s(14)
+fncomplete (filename.o):
+    open.o                    cbm/open.s(11)
+fnisfile (filename.o):
+    open.o                    cbm/open.s(13)
+fnlen (filename.o):
+    diskcmd.o                 cbm/diskcmd.s(14)
+fnparse (filename.o):
+    open.o                    cbm/open.s(11)
+fnset (filename.o):
+    open.o                    cbm/open.s(11)
+fnunit (filename.o):
+    scratch.o                 cbm/scratch.s(9)
+    open.o                    cbm/open.s(13)
+    diskcmd.o                 cbm/diskcmd.s(14)
+freefd (filedes.o):
+    open.o                    cbm/filedes.inc(9)
+incsp2 (incsp2.o):
+    puts.o                    ../libwrk/c64/puts.s(80)
+    popptr1.o                 runtime/popptr1.s(8)
+    inflatemem.o              zlib/inflatemem.s(13)
+    gunzip65.o                gunzip65.s(1110)
+incsp3 (incsp3.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(96)
+incsp4 (incsp4.o):
+    lcmp.o                    runtime/lcmp.s(9)
+    _fopen.o                  common/_fopen.s(11)
+    lpop.o                    runtime/lpop.s(9)
+    fread.o                   common/fread.s(12)
+    crc32.o                   zlib/crc32.s(11)
+    gunzip65.o                gunzip65.s(1110)
+incsp6 (incsp6.o):
+    fwrite.o                  common/fwrite.s(11)
+    fread.o                   common/fread.s(12)
+initlib (condes.o):
+    crt0.o                    c64/crt0.s(8)
+ldax0sp (ldaxsp.o):
+    fread.o                   common/fread.s(13)
+ldaxysp (ldaxsp.o):
+    puts.o                    ../libwrk/c64/puts.s(80)
+    fwrite.o                  common/fwrite.s(11)
+    fread.o                   common/fread.s(13)
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+ldeaxysp (ldeaxysp.o):
+    gunzip65.o                gunzip65.s(1110)
+leaa0sp (leaaxsp.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(96)
+memcpy_getparams (memcpy.o):
+    memmove.o                 common/memmove.s(12)
+memcpy_upwards (memcpy.o):
+    memmove.o                 common/memmove.s(12)
+mul8x16 (mul8.o):
+    mul.o                     runtime/mul.s(8)
+mul8x16a (mul8.o):
+    mul.o                     runtime/mul.s(8)
+opencmdchannel (diskcmd.o):
+    scratch.o                 cbm/scratch.s(8)
+    open.o                    cbm/open.s(12)
+popax (incsp2.o):
+    open.o                    cbm/open.s(10)
+    memcpy.o                  common/memcpy.s(14)
+    rwcommon.o                cbm/rwcommon.s(9)
+    memmove.o                 common/memmove.s(12)
+popeax (lpop.o):
+    crc32.o                   zlib/crc32.s(11)
+popptr1 (popptr1.o):
+    memcpy.o                  common/memcpy.s(14)
+    udiv.o                    runtime/udiv.s(9)
+    rwcommon.o                cbm/rwcommon.s(9)
+    mul8.o                    runtime/mul8.s(9)
+    mul.o                     runtime/mul.s(9)
+    crc32.o                   zlib/crc32.s(11)
+ptr1 (zeropage.o):
+    memcpy.o                  common/memcpy.s(15)
+    lcmp.o                    runtime/lcmp.s(10)
+    filename.o                cbm/filename.s(12)
+    diskcmd.o                 cbm/diskcmd.s(15)
+    _fopen.o                  common/_fopen.s(12)
+    zerobss.o                 common/zerobss.s(9)
+    write.o                   cbm/write.s(11)
+    udiv.o                    runtime/udiv.s(10)
+    read.o                    cbm/read.s(13)
+    puts.o                    ../libwrk/c64/puts.s(11)
+    popptr1.o                 runtime/popptr1.s(9)
+    mul8.o                    runtime/mul8.s(10)
+    mul.o                     runtime/mul.s(10)
+    memmove.o                 common/memmove.s(13)
+    inflatemem.o              zlib/inflatemem.s(14)
+    fwrite.o                  common/fwrite.s(14)
+    fread.o                   common/fread.s(17)
+    fclose.o                  common/fclose.s(11)
+    crc32.o                   zlib/crc32.s(12)
+    call.o                    runtime/call.s(8)
+    gunzip65.o                gunzip65.s(11)
+ptr2 (zeropage.o):
+    memcpy.o                  common/memcpy.s(15)
+    write.o                   cbm/write.s(11)
+    strlen.o                  common/strlen.s(12)
+    rwcommon.o                cbm/rwcommon.s(10)
+    read.o                    cbm/read.s(13)
+    memmove.o                 common/memmove.s(13)
+    inflatemem.o              zlib/inflatemem.s(14)
+    crc32.o                   zlib/crc32.s(12)
+ptr3 (zeropage.o):
+    memcpy.o                  common/memcpy.s(15)
+    write.o                   cbm/write.s(11)
+    rwcommon.o                cbm/rwcommon.s(10)
+    read.o                    cbm/read.s(13)
+    memmove.o                 common/memmove.s(13)
+    inflatemem.o              zlib/inflatemem.s(14)
+ptr4 (zeropage.o):
+    udiv.o                    runtime/udiv.s(10)
+    mul8.o                    runtime/mul8.s(10)
+    mul.o                     runtime/mul.s(10)
+    inflatemem.o              zlib/inflatemem.s(14)
+pusha0 (pushax.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(96)
+    puts.o                    ../libwrk/c64/puts.s(80)
+    fread.o                   common/fread.s(11)
+    gunzip65.o                gunzip65.s(1110)
+pushax (pushax.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(96)
+    callmain.o                runtime/callmain.s(11)
+    puts.o                    ../libwrk/c64/puts.s(80)
+    fwrite.o                  common/fwrite.s(11)
+    fread.o                   common/fread.s(11)
+    fopen.o                   common/fopen.s(11)
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+    gunzip65.o                gunzip65.s(1110)
+    gunzip65.o                gunzip65.s(1110)
+pusheax (lpush.o):
+    gunzip65.o                gunzip65.s(1110)
+pushwysp (pushwsp.o):
+    puts.o                    ../libwrk/c64/puts.s(80)
+    fwrite.o                  common/fwrite.s(11)
+    fread.o                   common/fread.s(14)
+readdiskerror (diskcmd.o):
+    open.o                    cbm/open.s(12)
+    close.o                   cbm/close.s(9)
+regbank (zeropage.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(10)
+    regswap2.o                runtime/regswap2.s(8)
+    fread.o                   common/fread.s(31)
+    fgets.o                   ../libwrk/c64/fgets.s(10)
+regsave (zeropage.o):
+    gunzip65.o                gunzip65.s(10)
+regswap2 (regswap2.o):
+    fgetc.o                   ../libwrk/c64/fgetc.s(96)
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+return0 (return0.o):
+    _fopen.o                  common/_fopen.s(11)
+    _fdesc.o                  common/_fdesc.s(9)
+    doesclrscr.o              common/doesclrscr.s(10)
+rwcommon (rwcommon.o):
+    write.o                   cbm/write.s(10)
+    read.o                    cbm/read.s(11)
+scratch (scratch.o):
+    open.o                    cbm/open.s(11)
+sp (zeropage.o):
+    decsp1.o                  runtime/decsp1.s(8)
+    memcpy.o                  common/memcpy.s(15)
+    leaaxsp.o                 runtime/leaaxsp.s(8)
+    lcmp.o                    runtime/lcmp.s(10)
+    fgetc.o                   ../libwrk/c64/fgetc.s(10)
+    decsp2.o                  runtime/decsp2.s(8)
+    addeqsp.o                 runtime/addeqsp.s(8)
+    _fopen.o                  common/_fopen.s(12)
+    toslong.o                 runtime/toslong.s(9)
+    subysp.o                  runtime/subysp.s(9)
+    subeqsp.o                 runtime/subeqsp.s(8)
+    steaxsp.o                 runtime/steaxsp.s(8)
+    staxsp.o                  runtime/staxsp.s(8)
+    regswap2.o                runtime/regswap2.s(8)
+    pushwsp.o                 runtime/pushwsp.s(8)
+    pushax.o                  runtime/pushax.s(8)
+    popptr1.o                 runtime/popptr1.s(9)
+    lpush.o                   runtime/lpush.s(13)
+    lpop.o                    runtime/lpop.s(10)
+    ldeaxysp.o                runtime/ldeaxysp.s(12)
+    ldaxsp.o                  runtime/ldaxsp.s(8)
+    ladd.o                    runtime/ladd.s(9)
+    inflatemem.o              zlib/inflatemem.s(14)
+    incsp2.o                  runtime/incsp2.s(8)
+    fread.o                   common/fread.s(17)
+    fgets.o                   ../libwrk/c64/fgets.s(10)
+    decsp6.o                  runtime/decsp6.s(8)
+    decsp4.o                  runtime/decsp4.s(8)
+    crt0.o                    /Users/thierry/Projects/Devel/cc65/asminc/zeropage.inc(11)
+    addysp.o                  runtime/addysp.s(8)
+    add.o                     runtime/add.s(12)
+    gunzip65.o                gunzip65.s(10)
+sreg (zeropage.o):
+    lcmp.o                    runtime/lcmp.s(10)
+    udiv.o                    runtime/udiv.s(10)
+    steaxsp.o                 runtime/steaxsp.s(8)
+    lpush.o                   runtime/lpush.s(13)
+    lpop.o                    runtime/lpop.s(10)
+    ldeaxysp.o                runtime/ldeaxysp.s(12)
+    lcompl.o                  runtime/lcompl.s(8)
+    ladd.o                    runtime/ladd.s(9)
+    inflatemem.o              zlib/inflatemem.s(14)
+    crc32.o                   zlib/crc32.s(12)
+    gunzip65.o                gunzip65.s(10)
+stax0sp (staxsp.o):
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+    gunzip65.o                gunzip65.s(1110)
+    gunzip65.o                gunzip65.s(1110)
+    gunzip65.o                gunzip65.s(1110)
+staxysp (staxsp.o):
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+    gunzip65.o                gunzip65.s(1110)
+    gunzip65.o                gunzip65.s(1110)
+steaxysp (steaxsp.o):
+    gunzip65.o                gunzip65.s(1110)
+subeqysp (subeqsp.o):
+    fgets.o                   ../libwrk/c64/fgets.s(116)
+    gunzip65.o                gunzip65.s(1110)
+subysp (subysp.o):
+    gunzip65.o                gunzip65.s(1110)
+tmp1 (zeropage.o):
+    filename.o                cbm/filename.s(12)
+    diskcmd.o                 cbm/diskcmd.s(15)
+    read.o                    cbm/read.s(13)
+    mul.o                     runtime/mul.s(10)
+    ladd.o                    runtime/ladd.s(9)
+    fgets.o                   ../libwrk/c64/fgets.s(11)
+    crc32.o                   zlib/crc32.s(12)
+    add.o                     runtime/add.s(12)
+tmp2 (zeropage.o):
+    open.o                    cbm/open.s(15)
+    close.o                   cbm/close.s(10)
+    rwcommon.o                cbm/rwcommon.s(10)
+    read.o                    cbm/read.s(13)
+    crc32.o                   zlib/crc32.s(12)
+tmp3 (zeropage.o):
+    open.o                    cbm/open.s(15)
+    read.o                    cbm/read.s(13)
+tosaddax (add.o):
+    gunzip65.o                gunzip65.s(1110)
+tosaddeax (ladd.o):
+    gunzip65.o                gunzip65.s(1110)
+toslcmp (lcmp.o):
+    lne.o                     runtime/lne.s(8)
+tosneeax (lne.o):
+    gunzip65.o                gunzip65.s(1110)
+tosudivax (udiv.o):
+    fwrite.o                  common/fwrite.s(12)
+    fread.o                   common/fread.s(15)
+tosulong (toslong.o):
+    gunzip65.o                gunzip65.s(1110)
+tosumulax (mul.o):
+    fwrite.o                  common/fwrite.s(12)
+    fread.o                   common/fread.s(15)
+unittab (filedes.o):
+    open.o                    cbm/filedes.inc(8)
+    close.o                   cbm/filedes.inc(8)
+    read.o                    cbm/filedes.inc(8)
+writefndiskcmd (diskcmd.o):
+    scratch.o                 cbm/scratch.s(8)
+zerobss (zerobss.o):
+    crt0.o                    c64/crt0.s(9)
+
