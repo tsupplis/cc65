@@ -284,6 +284,11 @@ static void SetSys (const char* Sys)
             NewSymbol ("__APPLE1__", 1);
             break;
 
+        case TGT_REPLICA1:
+            NewSymbol ("__APPLE1__", 1);
+            NewSymbol ("__REPLICA1__", 1);
+            break;
+
         case TGT_GAMATE:
             NewSymbol ("__GAMATE__", 1);
             break;

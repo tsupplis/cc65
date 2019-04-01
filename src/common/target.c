@@ -142,7 +142,7 @@ struct TargetEntry {
 ** Allows multiple entries for one target id (target name aliases).
 */
 static const TargetEntry TargetMap[] = {
-    {   "apple1"   ,    TGT_APPLE1       },
+    {   "apple1",       TGT_APPLE1       },
     {   "apple2",       TGT_APPLE2       },
     {   "apple2enh",    TGT_APPLE2ENH    },
     {   "atari",        TGT_ATARI        },
@@ -173,6 +173,7 @@ static const TargetEntry TargetMap[] = {
     {   "pce",          TGT_PCENGINE     },
     {   "pet",          TGT_PET          },
     {   "plus4",        TGT_PLUS4        },
+    {   "replica1",     TGT_REPLICA1     },
     {   "sim6502",      TGT_SIM6502      },
     {   "sim65c02",     TGT_SIM65C02     },
     {   "supervision",  TGT_SUPERVISION  },
@@ -205,6 +206,7 @@ static const TargetProperties PropertyTable[TGT_COUNT] = {
     { "apple2",         CPU_6502,       BINFMT_BINARY,      CTNone  },
     { "apple2enh",      CPU_65C02,      BINFMT_BINARY,      CTNone  },
     { "apple1",         CPU_6502,       BINFMT_BINARY,      CTNone  },
+    { "replica1",       CPU_6502,       BINFMT_BINARY,      CTNone  },
     { "geos-cbm",       CPU_6502,       BINFMT_BINARY,      CTNone  },
     { "creativision",   CPU_6502,       BINFMT_BINARY,      CTNone  },
     { "geos-apple",     CPU_65C02,      BINFMT_BINARY,      CTNone  },
