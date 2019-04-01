@@ -1,6 +1,6 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                                 apple1.h			                	     */
+/*                                 replica1.h                       	     */
 /*                                                                           */
 /*                   Apple I system specific definitions		             */
 /*                                                                           */
@@ -31,33 +31,13 @@
 
 
 
-#ifndef _APPLE1_H
-#define _APPLE1_H
+#ifndef _REPLICA1_H
+#define _REPLICA1_H
 
-/* Check for errors */
-#if !defined(__APPLE1__)
-#  error This module may only be used when compiling for the Apple 1!
+#if !defined(__REPLICA1__)
+#  error This module may only be used when compiling for the Replica 1!
 #endif
 
-/*****************************************************************************/
-/*                                   Data				     */
-/*****************************************************************************/
+#include <apple1.h>
 
-/*****************************************************************************/
-/*                                   H/W				     */
-/*****************************************************************************/
-
-#define	KBD	(*(unsigned char *)0xD010)	/* Read keyboard and clear strobe */
-#define	KBDRDY	(*(unsigned char *)0xD011)	/* Keyboard strobe */
-#define	VID	(*(unsigned char *)0xD012)	/* Write to video hardware */
-
-/*****************************************************************************/
-/*                                   Code				     */
-/*****************************************************************************/
-
-unsigned int __fastcall__ keypressed(void);
-unsigned int __fastcall__ readkey(void);
-void __fastcall__ writevid(unsigned char);
-
-/* End of apple1.h */
 #endif

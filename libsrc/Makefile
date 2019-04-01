@@ -17,7 +17,8 @@ GEOS = geos-apple \
 BBCS = bbc \
        bbcmaster
 
-TARGETS = apple1 \
+TARGETS = apple1       \
+          replica1     \
           apple2       \
           apple2enh    \
           atari        \
@@ -164,6 +165,10 @@ else ifeq ($(TARGET),atarixl)
   DRVPFX = atrx
 else ifeq ($(TARGET),sim65c02)
   SRCDIR = sim6502
+else ifeq ($(TARGET),replica1)
+  SRCDIR = apple1
+  OBJPRX = replica1
+  DRVPFX = replica1e
 else ifeq ($(TARGET),bbcmaster)
   SRCDIR = bbc
   OBJPRX = bbcm
