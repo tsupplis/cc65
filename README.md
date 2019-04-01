@@ -21,11 +21,12 @@ including
   - CBM 510 (aka P500)
   - the 600/700 family
   - newer PET machines (not 2001).
-- the Apple I and replica I
+- the Apple I and replica I.
 - the Apple ]\[+ and successors.
 - the Atari 8 bit machines.
 - the Atari 2600 console.
 - the Atari 5200 console.
+- the BBC Micro and BBC Master system.
 - GEOS for the C64, C128 and Apple //e.
 - the Bit Corporation Gamate console.
 - the NEC PC-Engine (aka TurboGrafx-16) console.

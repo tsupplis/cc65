@@ -69,6 +69,7 @@ typedef enum {
     TGT_OSIC1P,
     TGT_PET,
     TGT_BBC,
+    TGT_BBCMASTER,
     TGT_APPLE2,
     TGT_APPLE2ENH,
     TGT_APPLE1,
