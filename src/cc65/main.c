@@ -180,6 +180,11 @@ static void SetSys (const char* Sys)
             DefineNumericMacro ("__ATARIXL__", 1);
             break;
 
+        case TGT_ATOM:
+            DefineNumericMacro ("__ATOM__", 1);
+            break;
+
+
         case TGT_C16:
             cbmsys ("__C16__");
             break;

@@ -221,6 +221,10 @@ static void SetSys (const char* Sys)
             NewSymbol ("__ATARIXL__", 1);
             break;
 
+        case TGT_ATOM:
+            NewSymbol ("__ATOM__", 1);
+            break;
+
         case TGT_C16:
             CBMSystem ("__C16__");
             break;
