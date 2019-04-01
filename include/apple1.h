@@ -1,9 +1,13 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                                  target.h                                 */
+/*                                 apple1.h				     */
 /*                                                                           */
-/*                        Target specific definitions                        */
+/*                   Apple I system specific definitions		     */
 /*                                                                           */
+/*                                                                           */
+/*                                                                           */
+/* (C) 2000  Kevin Ruland, <kevin@rodin.wustl.edu>                           */
+/* (C) 2003  Ullrich von Bassewitz, <uz@cc65.org>                            */
 /*                                                                           */
 /*                                                                           */
 /* This software is provided 'as-is', without any expressed or implied       */
@@ -27,49 +31,33 @@
 
 
 
-#ifndef _TARGET_H
-#define _TARGET_H
+#ifndef _APPLE1_H
+#define _APPLE1_H
 
-
-
-/* Include the correct target specific file */
-#if   defined(__APPLE2ENH__)
-#  include <apple2enh.h>
-#elif defined(__APPLE2__)
-#  include <apple2.h>
-#elif defined(__APPLE1__)
-#  include <apple1.h>
-#elif defined(__ATARI__)
-#  include <atari.h>
-#elif defined(__ATARI2600__)
-#  include <atari2600.h>
-#elif defined(__ATARI5200__)
-#  include <atari5200.h>
-#elif defined(__ATMOS__)
-#  include <atmos.h>
-#elif defined(__CBM__)
-#  include <cbm.h>
-#elif defined(__CREATIVISION__)
-#  include <creativision.h>
-#elif defined(__GAMATE__)
-#  include <gamate.h>
-#elif defined(__GEOS__)
-#  include <geos.h>
-#elif defined(__LYNX__)
-#  include <lynx.h>
-#elif defined(__NES__)
-#  include <nes.h>
-#elif defined(__OSIC1P__)
-#  include <osic1p.h>
-#elif defined(__PCE__)
-#  include <pce.h>
-#elif defined(__SUPERVISION__)
-#  include <supervision.h>
-#elif defined(__TELESTRAT__)
-#  include <telestrat.h>
+/* Check for errors */
+#if !defined(__APPLE1__)
+#  error This module may only be used when compiling for the Apple 1!
 #endif
 
+/*****************************************************************************/
+/*                                   Data				     */
+/*****************************************************************************/
 
+/*****************************************************************************/
+/*                                   H/W				     */
+/*****************************************************************************/
 
-/* End of target.h */
+#define	KBD	(*(unsigned char *)0xD010)	/* Read keyboard and clear strobe */
+#define	KBDRDY	(*(unsigned char *)0xD011)	/* Keyboard strobe */
+#define	VID	(*(unsigned char *)0xD012)	/* Write to video hardware */
+
+/*****************************************************************************/
+/*                                   Code				     */
+/*****************************************************************************/
+
+unsigned int __fastcall__ keypressed(void);
+unsigned int __fastcall__ readkey(void);
+void __fastcall__ writevid(unsigned char);
+
+/* End of apple1.h */
 #endif
