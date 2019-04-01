@@ -199,6 +199,13 @@ EXELIST_atarixl = $(EXELIST_atari)
 EXELIST_atari2600 = \
         atari2600hello
 
+EXELIST_bbc =      \
+        ascii      \
+        hello      \
+        sieve
+
+EXELIST_bbcmaster = $(EXELIST_bbc)
+
 # Unlisted targets will try to build everything.
 # That lets us learn what they cannot build, and what settings
 # we need to use for programs that can be built and run.
@@ -316,7 +323,7 @@ zip:
 # Clean-up rules
 
 mostlyclean:
-	@$(DEL) *.lbl *.map *.o *.s 2>$(NULLDEV)
+	@$(DEL) *.inf *.lbl *.map *.o *.s 2>$(NULLDEV)
 
 clean: mostlyclean
 	@$(DEL) $(EXELIST_$(SYS)) $(DISK_$(SYS)) 2>$(NULLDEV)

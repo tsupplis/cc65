@@ -14,18 +14,22 @@ CBMS = c128   \
 GEOS = geos-apple \
        geos-cbm
 
-TARGETS = apple2       \
+BBCS = bbc \
+       bbcmaster
+
+TARGETS = apple1 \
+          apple2       \
           apple2enh    \
-          apple1       \
           atari        \
           atarixl      \
           atari2600    \
           atari5200    \
           atmos        \
           atom         \
-          creativision \
+          $(BBCS)      \
           $(CBMS)      \
           $(GEOS)      \
+          creativision \
           gamate       \
           lynx         \
           nes          \
@@ -160,6 +164,10 @@ else ifeq ($(TARGET),atarixl)
   DRVPFX = atrx
 else ifeq ($(TARGET),sim65c02)
   SRCDIR = sim6502
+else ifeq ($(TARGET),bbcmaster)
+  SRCDIR = bbc
+  OBJPRX = bbcm
+  DRVPFX = bbcme
 else
   SRCDIR = $(TARGET)
 endif
