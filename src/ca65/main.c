@@ -314,7 +314,7 @@ static void SetSys (const char* Sys)
 
         case TGT_ATMOS:
             NewSymbol ("__ATMOS__", 1);
-            break; 
+            break;
 
         case TGT_TELESTRAT:
              NewSymbol ("__TELESTRAT__", 1);
@@ -346,6 +346,10 @@ static void SetSys (const char* Sys)
 
         case TGT_PCENGINE:
             NewSymbol ("__PCE__", 1);
+            break;
+
+        case TGT_CX16:
+            CBMSystem ("__CX16__");
             break;
 
         default:
