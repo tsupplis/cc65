@@ -136,6 +136,7 @@ BITCHUNK:       .byte   $FF, $7F, $3F, $1F, $0F, $07, $03, $01
 CHARROM         := $8000        ; Character ROM base address
 CBASE           := $9400        ; Color memory base address
 SBASE           := $1000        ; Screen memory base address
+.assert (<SBASE) = $0, error, "Error, SBASE must be page aligned"
 VBASE           := $1100        ; Video memory base address
 
 ; These numbers are added to Kernal's default VIC settings.
@@ -250,40 +251,32 @@ PATTERN_SOLID:
 
 ; Initialize variables
 
-        ldx     #$FF
-        stx     BITMASK
+        ldy     #$FF
+        sty     BITMASK
+        iny                     ; (ldy #$00)
+        sty     ERROR           ; Set to TGI_ERR_OK
 
 ; Make screen columns.
 
-        lda     #<SBASE
-        sta     tmp2
+        sty     tmp2
         lda     #>SBASE
         sta     tmp2+1
-        inx                     ; (ldx #$00)
-        stx     ERROR           ; Set to TGI_ERR_OK
         clc
+        ldx     #$10
 
 @NEXT_ROW:
-        ldy     #$00
         txa
-        adc     #$10
 
 @NEXT_COLUMN:
         sta     (tmp2),y
-        adc     #ROWS
         iny
-        cpy     #COLS
-        bne     @NEXT_COLUMN
+        adc     #ROWS
+        bcc     @NEXT_COLUMN
 
 ; Step to next row on screen.
 
-        lda     tmp2
-        clc
-        adc     #COLS
-        sta     tmp2
-
         inx
-        cpx     #ROWS
+        cpx     #ROWS+$10
         bne     @NEXT_ROW
 
 ; Set up VIC.
