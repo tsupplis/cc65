@@ -33,6 +33,7 @@
 
 
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -1327,26 +1328,52 @@ void g_reglong (unsigned Flags)
 
 
 
+static unsigned g_intpromotion (unsigned flags)
+/* Return new flags for integral promotions for types smaller than int. */
+{
+    /* https://port70.net/~nsz/c/c89/c89-draft.html#3.2.1.1
+    ** A char, a short int, or an int bit-field, or their signed or unsigned varieties, or an
+    ** object that has enumeration type, may be used in an expression wherever an int or
+    ** unsigned int may be used. If an int can represent all values of the original type, the value
+    ** is converted to an int; otherwise it is converted to an unsigned int.
+    ** These are called the integral promotions.
+    */
+
+    if ((flags & CF_TYPEMASK) == CF_CHAR) {
+        /* int can represent all unsigned chars, so unsigned char is promoted to int. */
+        flags &= ~CF_TYPEMASK;
+        flags &= ~CF_UNSIGNED;
+        flags |= CF_INT;
+        return flags;
+    } else if ((flags & CF_TYPEMASK) == CF_SHORT) {
+        /* int cannot represent all unsigned shorts, so unsigned short is promoted to
+        ** unsigned int.
+        */
+        flags &= ~CF_TYPEMASK;
+        flags |= CF_INT;
+        return flags;
+    } else {
+        /* Otherwise, the type is not smaller than int, so leave it alone. */
+        return flags;
+    }
+}
+
+
+
 unsigned g_typeadjust (unsigned lhs, unsigned rhs)
 /* Adjust the integer operands before doing a binary operation. lhs is a flags
 ** value, that corresponds to the value on TOS, rhs corresponds to the value
 ** in (e)ax. The return value is the the flags value for the resulting type.
 */
 {
-    unsigned ltype, rtype;
-    unsigned result;
-
     /* Get the type spec from the flags */
-    ltype = lhs & CF_TYPEMASK;
-    rtype = rhs & CF_TYPEMASK;
+    unsigned ltype = lhs & CF_TYPEMASK;
+    unsigned rtype = rhs & CF_TYPEMASK;
 
     /* Check if a conversion is needed */
     if (ltype == CF_LONG && rtype != CF_LONG && (rhs & CF_CONST) == 0) {
         /* We must promote the primary register to long */
         g_reglong (rhs);
-        /* Get the new rhs type */
-        rhs = (rhs & ~CF_TYPEMASK) | CF_LONG;
-        rtype = CF_LONG;
     } else if (ltype != CF_LONG && (lhs & CF_CONST) == 0 && rtype == CF_LONG) {
         /* We must promote the lhs to long */
         if (lhs & CF_PRIMARY) {
@@ -1354,25 +1381,64 @@ unsigned g_typeadjust (unsigned lhs, unsigned rhs)
         } else {
             g_toslong (lhs);
         }
-        /* Get the new rhs type */
-        lhs = (lhs & ~CF_TYPEMASK) | CF_LONG;
-        ltype = CF_LONG;
     }
 
-    /* Determine the result type for the operation:
-    **  - The result is const if both operands are const.
-    **  - The result is unsigned if one of the operands is unsigned.
-    **  - The result is long if one of the operands is long.
-    **  - Otherwise the result is int sized.
+    /* Result is const if both operands are const. */
+    unsigned const_flag = (lhs & CF_CONST) & (rhs & CF_CONST);
+
+    /* https://port70.net/~nsz/c/c89/c89-draft.html#3.2.1.5
+    ** Many binary operators that expect operands of arithmetic type cause conversions and yield
+    ** result types in a similar way. The purpose is to yield a common type, which is also the type
+    ** of the result. This pattern is called the usual arithmetic conversions.
     */
-    result = (lhs & CF_CONST) & (rhs & CF_CONST);
-    result |= (lhs & CF_UNSIGNED) | (rhs & CF_UNSIGNED);
-    if (rtype == CF_LONG || ltype == CF_LONG) {
-        result |= CF_LONG;
-    } else {
-        result |= CF_INT;
+
+    /* Note that this logic is largely duplicated by ArithmeticConvert. */
+
+    /* Apply integral promotions for types char/short. */
+    lhs = g_intpromotion (lhs);
+    rhs = g_intpromotion (rhs);
+    ltype = lhs & CF_TYPEMASK;
+    rtype = rhs & CF_TYPEMASK;
+
+    /* If either operand has type unsigned long int, the other operand is converted to
+    ** unsigned long int.
+    */
+    if ((ltype == CF_LONG && (lhs & CF_UNSIGNED)) ||
+        (rtype == CF_LONG && (rhs & CF_UNSIGNED))) {
+        return const_flag | CF_UNSIGNED | CF_LONG;
     }
-    return result;
+
+    /* Otherwise, if one operand has type long int and the other has type unsigned int,
+    ** if a long int can represent all values of an unsigned int, the operand of type unsigned int
+    ** is converted to long int ; if a long int cannot represent all the values of an unsigned int,
+    ** both operands are converted to unsigned long int.
+    */
+    if ((ltype == CF_LONG && rtype == CF_INT && (rhs & CF_UNSIGNED)) ||
+        (rtype == CF_LONG && ltype == CF_INT && (rhs & CF_UNSIGNED))) {
+        /* long can represent all unsigneds, so we are in the first sub-case. */
+        return const_flag | CF_LONG;
+    }
+
+    /* Otherwise, if either operand has type long int, the other operand is converted to long int.
+    */
+    if (ltype == CF_LONG || rtype == CF_LONG) {
+        return const_flag | CF_LONG;
+    }
+
+    /* Otherwise, if either operand has type unsigned int, the other operand is converted to
+    ** unsigned int.
+    */
+    if ((ltype == CF_INT && (lhs & CF_UNSIGNED)) ||
+        (rtype == CF_INT && (rhs & CF_UNSIGNED))) {
+        return const_flag | CF_UNSIGNED | CF_INT;
+    }
+
+    /* Otherwise, both operands have type int. */
+    CHECK (ltype == CF_INT);
+    CHECK (!(lhs & CF_UNSIGNED));
+    CHECK (rtype == CF_INT);
+    CHECK (!(rhs & CF_UNSIGNED));
+    return const_flag | CF_INT;
 }
 
 
@@ -2141,7 +2207,7 @@ void g_restore (unsigned flags)
 
 
 void g_cmp (unsigned flags, unsigned long val)
-/* Immidiate compare. The primary register will not be changed, Z flag
+/* Immediate compare. The primary register will not be changed, Z flag
 ** will be set.
 */
 {
@@ -2387,6 +2453,21 @@ void g_falsejump (unsigned flags attribute ((unused)), unsigned label)
 {
     AddCodeLine ("jeq %s", LocalLabelName (label));
 }
+
+
+
+void g_branch (unsigned Label)
+/* Branch unconditionally to Label if the CPU has the BRA instruction.
+** Otherwise, jump to Label.
+*/
+{
+    if ((CPUIsets[CPU] & CPU_ISET_65SC02) != 0) {
+        AddCodeLine ("bra %s", LocalLabelName (Label));
+    } else {
+        g_jump (Label);
+    }
+}
+
 
 
 void g_lateadjustSP (unsigned label)
@@ -2695,12 +2776,14 @@ void g_div (unsigned flags, unsigned long val)
                 AddCodeLine ("lsr a");
                 g_restore (flags);
                 AddCodeLine ("bcs %s", LocalLabelName (DoShiftLabel));
- 
+
                 /* The result is 0. We can just load 0 and skip the shifting. */
                 g_getimmed (flags | CF_ABSOLUTE, 0, 0);
+
+                /* TODO: replace with BEQ? Would it be optimized? */
                 g_jump (EndLabel);
 
-                /* Do the shift. The sign of the result may need be corrected
+                /* Do the shift. The sign of the result may need to be corrected
                 ** later.
                 */
                 g_defcodelabel (DoShiftLabel);
@@ -3642,7 +3725,7 @@ void g_lt (unsigned flags, unsigned long val)
 
             /* Give a warning in some special cases */
             if (val == 0) {
-                Warning ("Condition is never true");
+                Warning ("Comparison of unsigned type < 0 is always false");
                 AddCodeLine ("jsr return0");
                 return;
             }
@@ -4354,6 +4437,123 @@ void g_initstatic (unsigned InitLabel, unsigned VarLabel, unsigned Size)
         AddCodeLine ("jsr pushax");
         g_getimmed (CF_INT | CF_UNSIGNED | CF_CONST, Size, 0);
         AddCodeLine ("jsr %s", GetLabelName (CF_EXTERNAL, (uintptr_t) "memcpy", 0));
+    }
+}
+
+
+
+/*****************************************************************************/
+/*                                Bit-fields                                 */
+/*****************************************************************************/
+
+
+
+void g_testbitfield (unsigned Flags, unsigned BitOffs, unsigned BitWidth)
+/* Test bit-field in ax. */
+{
+    unsigned EndBit = BitOffs + BitWidth;
+
+    /* If we need to do a test, then we avoid shifting (ASR only shifts one bit at a time,
+    ** so is slow) and just AND with the appropriate mask, then test the result of that.
+    */
+
+    /* Avoid overly large shift on host platform. */
+    if (EndBit == sizeof (unsigned long) * CHAR_BIT) {
+        g_and (Flags | CF_CONST, (~0UL << BitOffs));
+    } else {
+        g_and (Flags | CF_CONST, ((1UL << EndBit) - 1) & (~0UL << BitOffs));
+    }
+
+    /* TODO: When long bit-fields are supported, an optimization to test only 3 bytes when
+    ** EndBit <= 24 is possible.
+    */
+    g_test (Flags | CF_CONST);
+}
+
+
+
+void g_extractbitfield (unsigned Flags, unsigned FullWidthFlags, int IsSigned,
+                        unsigned BitOffs, unsigned BitWidth)
+/* Extract bits from bit-field in ax. */
+{
+    unsigned EndBit = BitOffs + BitWidth;
+
+    /* Shift right by the bit offset; no code is emitted if BitOffs is zero */
+    g_asr (Flags | CF_CONST, BitOffs);
+
+    /* Since we have now shifted down, we could do char ops when the width fits in a char, but we
+    ** also need to clear (or set) the high byte since we've been using CF_FORCECHAR up to now.
+    */
+    unsigned Mask = (1U << BitWidth) - 1;
+
+    /* To zero-extend, we will and by the width if the field doesn't end on a char or
+    ** int boundary.  If it does end on a boundary, then zeros will have already been shifted in,
+    ** but we need to clear the high byte for char.  g_and emits no code if the mask is all ones.
+    ** This is here so the signed and unsigned branches can use it.
+    */
+    unsigned ZeroExtendMask = 0;  /* Zero if we don't need to zero-extend. */
+    if (EndBit == CHAR_BITS) {
+        /* We need to clear the high byte, since CF_FORCECHAR was set. */
+        ZeroExtendMask = 0xFF;
+    } else if (EndBit != INT_BITS) {
+        ZeroExtendMask = (1U << BitWidth) - 1;
+    }
+
+    /* Handle signed bit-fields. */
+    if (IsSigned) {
+        /* Push A, since the sign bit test will destroy it. */
+        AddCodeLine ("pha");
+
+        /* Check sign bit */
+        unsigned SignBitPos = BitWidth - 1U;
+        unsigned SignBitByte = SignBitPos / CHAR_BITS;
+        unsigned SignBitPosInByte = SignBitPos % CHAR_BITS;
+        unsigned SignBitMask = 1U << SignBitPosInByte;
+
+        /* Move the correct byte to A.  This can only be X for now,
+        ** but more cases will be needed to support long.
+        */
+        switch (SignBitByte) {
+          case 0:
+            break;
+          case 1:
+            AddCodeLine ("txa");
+            break;
+          default:
+            FAIL ("Invalid Byte for sign bit");
+        }
+
+        /* Test the sign bit */
+        AddCodeLine ("and #$%02X", SignBitMask);
+        unsigned ZeroExtendLabel = GetLocalLabel ();
+        AddCodeLine ("beq %s", LocalLabelName (ZeroExtendLabel));
+
+        /* Pop A back and sign-extend if required; operating on the full result needs
+        ** to sign-extend into high byte, too.
+        */
+        AddCodeLine ("pla");
+        g_or (FullWidthFlags | CF_CONST, ~Mask);
+
+        unsigned DoneLabel = GetLocalLabel ();
+        g_branch (DoneLabel);
+
+        /* Pop A back, then zero-extend. We need to duplicate the PLA, rather than move it before
+        ** the branch to share with the other label, because PLA changes some condition codes.
+        */
+        g_defcodelabel (ZeroExtendLabel);
+        AddCodeLine ("pla");
+
+        /* Zero the upper bits, the same as the unsigned path. */
+        if (ZeroExtendMask != 0) {
+            g_and (FullWidthFlags | CF_CONST, ZeroExtendMask);
+        }
+
+        g_defcodelabel (DoneLabel);
+    } else {
+        /* Unsigned bit-field, needs only zero-extension. */
+        if (ZeroExtendMask != 0) {
+            g_and (FullWidthFlags | CF_CONST, ZeroExtendMask);
+        }
     }
 }
 

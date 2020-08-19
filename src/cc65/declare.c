@@ -41,6 +41,7 @@
 /* common */
 #include "addrsize.h"
 #include "mmodel.h"
+#include "shift.h"
 #include "xmalloc.h"
 
 /* cc65 */
@@ -58,6 +59,7 @@
 #include "pragma.h"
 #include "scanner.h"
 #include "standard.h"
+#include "staticassert.h"
 #include "symtab.h"
 #include "wrappedcall.h"
 #include "typeconv.h"
@@ -86,10 +88,11 @@ struct StructInitData {
 
 
 
-static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers);
+static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers,
+                           int* SignednessSpecified);
 /* Parse a type specifier */
 
-static unsigned ParseInitInternal (Type* T, int AllowFlexibleMembers);
+static unsigned ParseInitInternal (Type* T, int* Braces, int AllowFlexibleMembers);
 /* Parse initialization of variables. Return the number of data bytes. */
 
 
@@ -251,18 +254,21 @@ static void OptionalInt (void)
 
 
 
-static void OptionalSigned (void)
+static void OptionalSigned (int* SignednessSpecified)
 /* Eat an optional "signed" token */
 {
     if (CurTok.Tok == TOK_SIGNED) {
         /* Skip it */
         NextToken ();
+        if (SignednessSpecified != NULL) {
+            *SignednessSpecified = 1;
+        }
     }
 }
 
 
 
-static void InitDeclSpec (DeclSpec* D)
+void InitDeclSpec (DeclSpec* D)
 /* Initialize the DeclSpec struct for use */
 {
     D->StorageClass     = 0;
@@ -409,6 +415,48 @@ static void FixQualifiers (Type* DataType)
 
 
 
+static unsigned ParseOneStorageClass (void)
+/* Parse and return a storage class */
+{
+    unsigned StorageClass = 0;
+
+    /* Check the storage class given */
+    switch (CurTok.Tok) {
+
+        case TOK_EXTERN:
+            StorageClass = SC_EXTERN | SC_STATIC;
+            NextToken ();
+            break;
+
+        case TOK_STATIC:
+            StorageClass = SC_STATIC;
+            NextToken ();
+            break;
+
+        case TOK_REGISTER:
+            StorageClass = SC_REGISTER | SC_STATIC;
+            NextToken ();
+            break;
+
+        case TOK_AUTO:
+            StorageClass = SC_AUTO;
+            NextToken ();
+            break;
+
+        case TOK_TYPEDEF:
+            StorageClass = SC_TYPEDEF;
+            NextToken ();
+            break;
+
+        default:
+            break;
+    }
+
+    return StorageClass;
+}
+
+
+
 static void ParseStorageClass (DeclSpec* D, unsigned DefStorage)
 /* Parse a storage class */
 {
@@ -416,64 +464,122 @@ static void ParseStorageClass (DeclSpec* D, unsigned DefStorage)
     D->Flags &= ~DS_DEF_STORAGE;
 
     /* Check the storage class given */
-    switch (CurTok.Tok) {
-
-        case TOK_EXTERN:
-            D->StorageClass = SC_EXTERN | SC_STATIC;
-            NextToken ();
-            break;
-
-        case TOK_STATIC:
-            D->StorageClass = SC_STATIC;
-            NextToken ();
-            break;
-
-        case TOK_REGISTER:
-            D->StorageClass = SC_REGISTER | SC_STATIC;
-            NextToken ();
-            break;
-
-        case TOK_AUTO:
-            D->StorageClass = SC_AUTO;
-            NextToken ();
-            break;
-
-        case TOK_TYPEDEF:
-            D->StorageClass = SC_TYPEDEF;
-            NextToken ();
-            break;
-
-        default:
-            /* No storage class given, use default */
-            D->Flags |= DS_DEF_STORAGE;
-            D->StorageClass = DefStorage;
-            break;
+    D->StorageClass = ParseOneStorageClass ();
+    if (D->StorageClass == 0) {
+        /* No storage class given, use default */
+        D->Flags |= DS_DEF_STORAGE;
+        D->StorageClass = DefStorage;
+    } else {
+        unsigned StorageClass = ParseOneStorageClass ();
+        while (StorageClass != 0) {
+            if (D->StorageClass == StorageClass) {
+                Warning ("Duplicate storage class specifier");
+            } else {
+                Error ("Conflicting storage class specifier");
+            }
+            StorageClass = ParseOneStorageClass ();
+        }
     }
 }
 
 
 
-static void ParseEnumDecl (void)
-/* Process an enum declaration . */
+static SymEntry* ESUForwardDecl (const char* Name, unsigned Flags)
+/* Handle an enum, struct or union forward decl */
 {
-    int EnumVal;
-    ident Ident;
-
-    /* Accept forward definitions */
-    if (CurTok.Tok != TOK_LCURLY) {
-        return;
+    /* Try to find an enum/struct/union with the given name. If there is none,
+    ** insert a forward declaration into the current lexical level.
+    */
+    SymEntry* Entry = FindTagSym (Name);
+    if (Entry == 0) {
+        if ((Flags & SC_ESUTYPEMASK) != SC_ENUM) {
+            Entry = AddStructSym (Name, Flags, 0, 0);
+        } else {
+            Entry = AddEnumSym (Name, Flags, 0, 0);
+        }
+    } else if ((Entry->Flags & SC_TYPEMASK) != (Flags & SC_ESUTYPEMASK)) {
+        /* Already defined, but not the same type class */
+        Error ("Symbol '%s' is already different kind", Name);
     }
+    return Entry;
+}
+
+
+
+static const Type* GetEnumeratorType (long Min, unsigned long Max, int Signed)
+/* GitHub #1093 - We use unsigned types to save spaces whenever possible.
+** If both the signed and unsigned integer types of the same minimum size
+** capable of representing all values of the enum, we prefer the unsigned
+** one.
+** Return 0 if impossible to represent Min and Max as the same integer type.
+*/
+{
+    const Type* Underlying = type_int;      /* default type */
+
+    /* Change the underlying type if necessary */
+    if (Min < 0 || Signed) {
+        /* We can't use unsigned types if there are any negative values */
+        if (Max > (unsigned long)INT32_MAX) {
+            /* No way to represent both Min and Max as the same integer type */
+            Underlying = 0;
+        } else if (Min < INT16_MIN || Max > (unsigned long)INT16_MAX) {
+            Underlying = type_long;
+        } else if (Min < INT8_MIN || Max > (unsigned long)INT8_MAX) {
+            Underlying = type_int;
+        } else {
+            Underlying = type_schar;
+        }
+    } else {
+        if (Max > UINT16_MAX) {
+            Underlying = type_ulong;
+        } else if (Max > UINT8_MAX) {
+            Underlying = type_uint;
+        } else {
+            Underlying = type_uchar;
+        }
+    }
+
+    return Underlying;
+}
+
+
+
+static SymEntry* ParseEnumDecl (const char* Name)
+/* Process an enum declaration */
+{
+    SymTable*       FieldTab;
+    long            EnumVal;
+    int             IsSigned;
+    int             IsIncremented;
+    ident           Ident;
+    long            MinConstant = 0;
+    unsigned long   MaxConstant = 0;
+    const Type*     NewType     = 0;        /* new member type */
+    const Type*     MemberType  = type_int; /* default member type */
+    unsigned        Flags       = 0;
+    unsigned        PrevErrorCount = ErrorCount;
+
+
+    if (CurTok.Tok != TOK_LCURLY) {
+        /* Just a forward definition */
+        return ESUForwardDecl (Name, SC_ENUM);
+    }
+
+    /* Add a forward declaration for the enum tag in the current lexical level */
+    AddEnumSym (Name, 0, 0, 0);
 
     /* Skip the opening curly brace */
     NextToken ();
 
     /* Read the enum tags */
-    EnumVal = 0;
+    EnumVal = -1L;
     while (CurTok.Tok != TOK_RCURLY) {
 
         /* We expect an identifier */
         if (CurTok.Tok != TOK_IDENT) {
-            Error ("Identifier expected");
+            Error ("Identifier expected for enumerator declarator");
+            /* Avoid excessive errors */
+            NextToken ();
             continue;
         }
 
@@ -483,21 +589,127 @@ static void ParseEnumDecl (void)
 
         /* Check for an assigned value */
         if (CurTok.Tok == TOK_ASSIGN) {
+
             ExprDesc Expr;
             NextToken ();
             ConstAbsIntExpr (hie1, &Expr);
-            EnumVal = Expr.IVal;
+            EnumVal       = Expr.IVal;
+            MemberType    = Expr.Type;
+            IsSigned      = IsSignSigned (MemberType);
+            IsIncremented = 0;
+
+        } else {
+
+             /* Defaulted with the same signedness as the previous member's */
+            IsSigned = IsSignSigned (MemberType) &&
+                       (unsigned long)EnumVal != GetIntegerTypeMax (MemberType);
+
+            /* Enumerate. Signed integer overflow is UB but unsigned integers
+            ** are guaranteed to wrap around.
+            */
+            EnumVal = (long)((unsigned long)EnumVal + 1UL);
+
+            if (UnqualifiedType (MemberType->C) == T_ULONG && EnumVal == 0) {
+                /* Warn on 'unsigned long' overflow in enumeration */
+                Warning ("Enumerator '%s' overflows the range of '%s'",
+                         Ident,
+                         GetBasicTypeName (type_ulong));
+            }
+
+            IsIncremented = 1;
         }
 
-        /* Add an entry to the symbol table */
-        AddConstSym (Ident, type_int, SC_ENUMERATOR | SC_CONST, EnumVal++);
+        /* Track down the min/max values and evaluate the type of EnumVal
+        ** using GetEnumeratorType in a tricky way.
+        */
+        if (!IsSigned || EnumVal >= 0) {
+            if ((unsigned long)EnumVal > MaxConstant) {
+                MaxConstant = (unsigned long)EnumVal;
+            }
+            NewType = GetEnumeratorType (0, EnumVal, IsSigned);
+        } else {
+            if (EnumVal < MinConstant) {
+                MinConstant = EnumVal;
+            }
+            NewType = GetEnumeratorType (EnumVal, 0, 1);
+        }
+
+        /* GetEnumeratorType above should never fail, but just in case */
+        if (NewType == 0) {
+            Internal ("Unexpected failure with GetEnumeratorType: %lx", EnumVal);
+            NewType = type_ulong;
+        } else if (SizeOf (NewType) < SizeOf (type_int)) {
+            /* Integer constants are not shorter than int */
+            NewType = type_int;
+        }
+
+        /* Warn if the incremented value exceeds the range of the previous
+        ** type.
+        */
+        if (IsIncremented   &&
+            EnumVal >= 0    &&
+            NewType->C != UnqualifiedType (MemberType->C)) {
+            /* The possible overflow here can only be when EnumVal > 0 */
+            Warning ("Enumerator '%s' (value = %lu) is of type '%s'",
+                     Ident,
+                     (unsigned long)EnumVal,
+                     GetBasicTypeName (NewType));
+        }
+
+        /* Warn if the value exceeds range of 'int' in standard mode */
+        if (IS_Get (&Standard) != STD_CC65 && NewType->C != T_INT) {
+            if (!IsSigned || EnumVal >= 0) {
+                Warning ("ISO C restricts enumerator values to range of 'int'\n"
+                         "\tEnumerator '%s' (value = %lu) is too large",
+                         Ident,
+                         (unsigned long)EnumVal);
+            } else {
+                Warning ("ISO C restricts enumerator values to range of 'int'\n"
+                         "\tEnumerator '%s' (value = %ld) is too small",
+                         Ident,
+                         EnumVal);
+            }
+        }
+
+        /* Add an entry of the enumerator to the symbol table */
+        AddConstSym (Ident, NewType, SC_ENUMERATOR | SC_CONST, EnumVal);
+
+        /* Use this type for following members */
+        MemberType = NewType;
 
         /* Check for end of definition */
-        if (CurTok.Tok != TOK_COMMA)
+        if (CurTok.Tok != TOK_COMMA) {
             break;
+        }
         NextToken ();
     }
     ConsumeRCurly ();
+
+    /* Check if there have been any members. Error if none */
+    if (NewType == 0) {
+        Error ("Empty enum is invalid");
+    }
+
+    /* This evaluates the underlying type of the whole enum */
+    MemberType = GetEnumeratorType (MinConstant, MaxConstant, 0);
+    if (MemberType == 0) {
+        /* It is very likely that the program is wrong */
+        Error ("Enumeration values cannot be represented all as 'long'\n"
+               "\tMin enumerator value = %ld, Max enumerator value = %lu",
+               MinConstant, MaxConstant);
+
+        /* Avoid more errors */
+        MemberType = type_long;
+    }
+
+    FieldTab = GetSymTab ();
+
+    /* Return a fictitious symbol if errors occurred during parsing */
+    if (PrevErrorCount != ErrorCount) {
+        Flags |= SC_FICTITIOUS;
+    }
+
+    return AddEnumSym (Name, Flags, MemberType, FieldTab);
 }
 
 
@@ -514,24 +726,36 @@ static int ParseFieldWidth (Declaration* Decl)
         return -1;
     }
 
+    if (!IsClassInt (Decl->Type)) {
+        /* Only integer types may be used for bit-fields */
+        Error ("Bit-field has invalid type '%s', must be integral",
+               GetBasicTypeName (Decl->Type));
+        return -1;
+    }
+
+    /* TODO: This can be relaxed to be any integral type, but
+    ** ParseStructInit currently only supports up to int.
+    */
+    if (SizeOf (Decl->Type) != SizeOf (type_uint)) {
+        /* Only int sized types may be used for bit-fields for now */
+        Error ("cc65 currently only supports unsigned int bit-fields");
+        return -1;
+    }
+
     /* Read the width */
     NextToken ();
     ConstAbsIntExpr (hie1, &Expr);
+
     if (Expr.IVal < 0) {
         Error ("Negative width in bit-field");
         return -1;
     }
-    if (Expr.IVal > (int) INT_BITS) {
+    if (Expr.IVal > (long)(SizeOf (Decl->Type) * CHAR_BITS)) {
         Error ("Width of bit-field exceeds its type");
         return -1;
     }
     if (Expr.IVal == 0 && Decl->Ident[0] != '\0') {
         Error ("Zero width for named bit-field");
-        return -1;
-    }
-    if (!IsTypeInt (Decl->Type)) {
-        /* Only integer types may be used for bit-fields */
-        Error ("Bit-field has invalid type");
         return -1;
     }
 
@@ -541,34 +765,41 @@ static int ParseFieldWidth (Declaration* Decl)
 
 
 
-static SymEntry* StructOrUnionForwardDecl (const char* Name, unsigned Type)
-/* Handle a struct or union forward decl */
+static unsigned PadWithBitField (unsigned StructSize, unsigned BitOffs)
+/* Pad the current struct with an anonymous bit-field aligned to the next byte.
+** Return how many bits are used to pad.
+*/
 {
-    /* Try to find a struct/union with the given name. If there is none,
-    ** insert a forward declaration into the current lexical level.
+    /* MSVC complains about unary negation of unsigned,
+    ** so it has been rewritten as subtraction.
     */
-    SymEntry* Entry = FindTagSym (Name);
-    if (Entry == 0) {
-        Entry = AddStructSym (Name, Type, 0, 0);
-    } else if ((Entry->Flags & SC_TYPEMASK) != Type) {
-        /* Already defined, but no struct */
-        Error ("Symbol '%s' is already different kind", Name);
-    }
-    return Entry;
+    unsigned PaddingBits = (0 - BitOffs) % CHAR_BITS;
+
+    /* We need an anonymous name */
+    ident Ident;
+    AnonName (Ident, "bit-field");
+
+    /* Add an anonymous bit-field that aligns to the next
+    ** byte.
+    */
+    AddBitField (Ident, type_uchar, StructSize, BitOffs, PaddingBits,
+                 /*SignednessSpecified=*/1);
+
+    return PaddingBits;
 }
 
 
 
-static unsigned CopyAnonStructFields (const Declaration* Decl, int Offs)
-/* Copy fields from an anon union/struct into the current lexical level. The
-** function returns the size of the embedded struct/union.
+static unsigned AliasAnonStructFields (const Declaration* Decl, SymEntry* Anon)
+/* Create alias fields from an anon union/struct in the current lexical level.
+** The function returns the count of created aliases.
 */
 {
-    /* Get the pointer to the symbol table entry of the anon struct */
-    SymEntry* Entry = GetSymEntry (Decl->Type);
+    unsigned Count = 0;
+    SymEntry* Alias;
 
-    /* Get the size of the anon struct */
-    unsigned Size = Entry->V.S.Size;
+    /* Get the pointer to the symbol table entry of the anon struct */
+    SymEntry* Entry = GetESUSymEntry (Decl->Type);
 
     /* Get the symbol table containing the fields. If it is empty, there has
     ** been an error before, so bail out.
@@ -576,7 +807,7 @@ static unsigned CopyAnonStructFields (const Declaration* Decl, int Offs)
     SymTable* Tab = Entry->V.S.SymTab;
     if (Tab == 0) {
         /* Incomplete definition - has been flagged before */
-        return Size;
+        return 0;
     }
 
     /* Get a pointer to the list of symbols. Then walk the list adding copies
@@ -585,10 +816,13 @@ static unsigned CopyAnonStructFields (const Declaration* Decl, int Offs)
     Entry = Tab->SymHead;
     while (Entry) {
 
-        /* Enter a copy of this symbol adjusting the offset. We will just
-        ** reuse the type string here.
-        */
-        AddLocalSym (Entry->Name, Entry->Type, SC_STRUCTFIELD, Offs + Entry->V.Offs);
+        /* Enter an alias of this symbol */
+        if (!IsAnonName (Entry->Name)) {
+            Alias = AddLocalSym (Entry->Name, Entry->Type, SC_STRUCTFIELD|SC_ALIAS, 0);
+            Alias->V.A.Field = Entry;
+            Alias->V.A.Offs  = Anon->V.Offs + Entry->V.Offs;
+            ++Count;
+        }
 
         /* Currently, there can not be any attributes, but if there will be
         ** some in the future, we want to know this.
@@ -599,8 +833,8 @@ static unsigned CopyAnonStructFields (const Declaration* Decl, int Offs)
         Entry = Entry->NextSym;
     }
 
-    /* Return the size of the embedded struct */
-    return Size;
+    /* Return the count of created aliases */
+    return Count;
 }
 
 
@@ -613,15 +847,21 @@ static SymEntry* ParseUnionDecl (const char* Name)
     unsigned  FieldSize;
     int       FieldWidth;       /* Width in bits, -1 if not a bit-field */
     SymTable* FieldTab;
+    SymEntry* UnionTagEntry;
+    SymEntry* Entry;
+    unsigned  Flags = 0;
+    unsigned  PrevErrorCount = ErrorCount;
 
 
     if (CurTok.Tok != TOK_LCURLY) {
-        /* Just a forward declaration. */
-        return StructOrUnionForwardDecl (Name, SC_UNION);
+        /* Just a forward declaration */
+        return ESUForwardDecl (Name, SC_UNION);
     }
 
-    /* Add a forward declaration for the struct in the current lexical level */
-    AddStructSym (Name, SC_UNION, 0, 0);
+    /* Add a forward declaration for the union tag in the current lexical level */
+    UnionTagEntry = AddStructSym (Name, SC_UNION, 0, 0);
+
+    UnionTagEntry->V.S.ACount = 0;
 
     /* Skip the curly brace */
     NextToken ();
@@ -635,8 +875,9 @@ static SymEntry* ParseUnionDecl (const char* Name)
 
         /* Get the type of the entry */
         DeclSpec Spec;
+        int SignednessSpecified = 0;
         InitDeclSpec (&Spec);
-        ParseTypeSpec (&Spec, -1, T_QUAL_NONE);
+        ParseTypeSpec (&Spec, -1, T_QUAL_NONE, &SignednessSpecified);
 
         /* Read fields with this type */
         while (1) {
@@ -663,16 +904,11 @@ static SymEntry* ParseUnionDecl (const char* Name)
                     /* This is an anonymous struct or union. Copy the fields
                     ** into the current level.
                     */
-                    FieldSize = CopyAnonStructFields (&Decl, 0);
-                    if (FieldSize > UnionSize) {
-                        UnionSize = FieldSize;
-                    }
-
+                    AnonFieldName (Decl.Ident, "field", UnionTagEntry->V.S.ACount);
                 } else {
                     /* A non bit-field without a name is legal but useless */
                     Warning ("Declaration does not declare anything");
                 }
-                goto NextMember;
             }
 
             /* Handle sizes */
@@ -683,9 +919,19 @@ static SymEntry* ParseUnionDecl (const char* Name)
 
             /* Add a field entry to the table. */
             if (FieldWidth > 0) {
-                AddBitField (Decl.Ident, 0, 0, FieldWidth);
+                /* For a union, allocate space for the type specified by the
+                ** bit-field.
+                */
+                AddBitField (Decl.Ident, Decl.Type, 0, 0, FieldWidth,
+                             SignednessSpecified);
             } else {
-                AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, 0);
+                if (IsAnonName (Decl.Ident)) {
+                    Entry = AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, 0);
+                    Entry->V.A.ANumber = UnionTagEntry->V.S.ACount++;
+                    AliasAnonStructFields (&Decl, Entry);
+                } else {
+                    AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, 0);
+                }
             }
 
 NextMember: if (CurTok.Tok != TOK_COMMA) {
@@ -703,8 +949,18 @@ NextMember: if (CurTok.Tok != TOK_COMMA) {
     FieldTab = GetSymTab ();
     LeaveStructLevel ();
 
+    /* Empty union is not supported now */
+    if (UnionSize == 0) {
+        Error ("Empty union type '%s' is not supported", Name);
+    }
+
+    /* Return a fictitious symbol if errors occurred during parsing */
+    if (PrevErrorCount != ErrorCount) {
+        Flags |= SC_FICTITIOUS;
+    }
+
     /* Make a real entry from the forward decl and return it */
-    return AddStructSym (Name, SC_UNION, UnionSize, FieldTab);
+    return AddStructSym (Name, SC_UNION | SC_DEF | Flags, UnionSize, FieldTab);
 }
 
 
@@ -718,15 +974,21 @@ static SymEntry* ParseStructDecl (const char* Name)
     unsigned  BitOffs;          /* Bit offset for bit-fields */
     int       FieldWidth;       /* Width in bits, -1 if not a bit-field */
     SymTable* FieldTab;
+    SymEntry* StructTagEntry;
+    SymEntry* Entry;
+    unsigned  Flags = 0;
+    unsigned  PrevErrorCount = ErrorCount;
 
 
     if (CurTok.Tok != TOK_LCURLY) {
-        /* Just a forward declaration. */
-        return StructOrUnionForwardDecl (Name, SC_STRUCT);
+        /* Just a forward declaration */
+        return ESUForwardDecl (Name, SC_STRUCT);
     }
 
-    /* Add a forward declaration for the struct in the current lexical level */
-    AddStructSym (Name, SC_STRUCT, 0, 0);
+    /* Add a forward declaration for the struct tag in the current lexical level */
+    StructTagEntry = AddStructSym (Name, SC_STRUCT, 0, 0);
+
+    StructTagEntry->V.S.ACount = 0;
 
     /* Skip the curly brace */
     NextToken ();
@@ -742,14 +1004,21 @@ static SymEntry* ParseStructDecl (const char* Name)
 
         /* Get the type of the entry */
         DeclSpec Spec;
+
+        /* Check for a _Static_assert */
+        if (CurTok.Tok == TOK_STATIC_ASSERT) {
+            ParseStaticAssert ();
+            continue;
+        }
+
+        int SignednessSpecified = 0;
         InitDeclSpec (&Spec);
-        ParseTypeSpec (&Spec, -1, T_QUAL_NONE);
+        ParseTypeSpec (&Spec, -1, T_QUAL_NONE, &SignednessSpecified);
 
         /* Read fields with this type */
         while (1) {
 
             Declaration Decl;
-            ident       Ident;
 
             /* If we had a flexible array member before, no other fields can
             ** follow.
@@ -766,25 +1035,17 @@ static SymEntry* ParseStructDecl (const char* Name)
             FieldWidth = ParseFieldWidth (&Decl);
 
             /* If this is not a bit field, or the bit field is too large for
-            ** the remainder of the current member, or we have a bit field
+            ** the remainder of the allocated unit, or we have a bit field
             ** with width zero, align the struct to the next member by adding
             ** a member with an anonymous name.
             */
             if (BitOffs > 0) {
-                if (FieldWidth <= 0 || (BitOffs + FieldWidth) > INT_BITS) {
-                    /* Bits needed to byte-align the next field.
-                    ** MSVC complains about unary negation of unsigned,
-                    ** so it has been rewritten as subtraction.
-                    */
-                    unsigned PaddingBits = (0 - BitOffs) % CHAR_BITS;
-
-                    /* We need an anonymous name */
-                    AnonName (Ident, "bit-field");
-
+                if (FieldWidth <= 0 ||
+                    (BitOffs + FieldWidth) > CHAR_BITS * SizeOf (Decl.Type)) {
                     /* Add an anonymous bit-field that aligns to the next
                     ** byte.
                     */
-                    AddBitField (Ident, StructSize, BitOffs, PaddingBits);
+                    unsigned PaddingBits = PadWithBitField (StructSize, BitOffs);
 
                     /* No bits left */
                     StructSize += (BitOffs + PaddingBits) / CHAR_BITS;
@@ -823,13 +1084,11 @@ static SymEntry* ParseStructDecl (const char* Name)
                         /* This is an anonymous struct or union. Copy the
                         ** fields into the current level.
                         */
-                        StructSize += CopyAnonStructFields (&Decl, StructSize);
-
+                        AnonFieldName (Decl.Ident, "field", StructTagEntry->V.S.ACount);
                     } else {
                         /* A non bit-field without a name is legal but useless */
                         Warning ("Declaration does not declare anything");
                     }
-                    goto NextMember;
                 } else {
                     /* A bit-field without a name will get an anonymous one */
                     AnonName (Decl.Ident, "bit-field");
@@ -844,14 +1103,21 @@ static SymEntry* ParseStructDecl (const char* Name)
                 ** bit-field as a char type in expressions.
                 */
                 CHECK (BitOffs < CHAR_BITS);
-                AddBitField (Decl.Ident, StructSize, BitOffs, FieldWidth);
+                AddBitField (Decl.Ident, Decl.Type, StructSize, BitOffs,
+                             FieldWidth, SignednessSpecified);
                 BitOffs += FieldWidth;
-                CHECK (BitOffs <= INT_BITS);
+                CHECK (BitOffs <= CHAR_BITS * SizeOf (Decl.Type));
                 /* Add any full bytes to the struct size. */
                 StructSize += BitOffs / CHAR_BITS;
                 BitOffs %= CHAR_BITS;
             } else {
-                AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, StructSize);
+                if (IsAnonName (Decl.Ident)) {
+                    Entry = AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, StructSize);
+                    Entry->V.A.ANumber = StructTagEntry->V.S.ACount++;
+                    AliasAnonStructFields (&Decl, Entry);
+                } else {
+                    AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, StructSize);
+                }
                 if (!FlexibleMember) {
                     StructSize += CheckedSizeOf (Decl.Type);
                 }
@@ -865,9 +1131,12 @@ NextMember: if (CurTok.Tok != TOK_COMMA) {
         ConsumeSemi ();
     }
 
-    /* If we have bits from bit-fields left, add them to the size. */
     if (BitOffs > 0) {
-        StructSize += ((BitOffs + CHAR_BITS - 1) / CHAR_BITS);
+        /* If we have bits from bit-fields left, pad the struct to next byte */
+        unsigned PaddingBits = PadWithBitField (StructSize, BitOffs);
+
+        /* No bits left */
+        StructSize += (BitOffs + PaddingBits) / CHAR_BITS;
     }
 
     /* Skip the closing brace */
@@ -877,17 +1146,35 @@ NextMember: if (CurTok.Tok != TOK_COMMA) {
     FieldTab = GetSymTab ();
     LeaveStructLevel ();
 
+    /* Empty struct is not supported now */
+    if (StructSize == 0) {
+        Error ("Empty struct type '%s' is not supported", Name);
+    }
+
+    /* Return a fictitious symbol if errors occurred during parsing */
+    if (PrevErrorCount != ErrorCount) {
+        Flags |= SC_FICTITIOUS;
+    }
+
     /* Make a real entry from the forward decl and return it */
-    return AddStructSym (Name, SC_STRUCT, StructSize, FieldTab);
+    return AddStructSym (Name, SC_STRUCT | SC_DEF | Flags, StructSize, FieldTab);
 }
 
 
 
-static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
-/* Parse a type specifier */
+static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers,
+                           int* SignednessSpecified)
+/* Parse a type specifier.  Store whether one of "signed" or "unsigned" was
+** specified, so bit-fields of unspecified signedness can be treated as
+** unsigned; without special handling, it would be treated as signed.
+*/
 {
     ident       Ident;
     SymEntry*   Entry;
+
+    if (SignednessSpecified != NULL) {
+        *SignednessSpecified = 0;
+    }
 
     /* Assume we have an explicit type */
     D->Flags &= ~DS_DEF_TYPE;
@@ -907,19 +1194,22 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
 
         case TOK_CHAR:
             NextToken ();
-            D->Type[0].C = GetDefaultChar();
+            D->Type[0].C = T_CHAR;
             D->Type[1].C = T_END;
             break;
 
         case TOK_LONG:
             NextToken ();
             if (CurTok.Tok == TOK_UNSIGNED) {
+                if (SignednessSpecified != NULL) {
+                    *SignednessSpecified = 1;
+                }
                 NextToken ();
                 OptionalInt ();
                 D->Type[0].C = T_ULONG;
                 D->Type[1].C = T_END;
             } else {
-                OptionalSigned ();
+                OptionalSigned (SignednessSpecified);
                 OptionalInt ();
                 D->Type[0].C = T_LONG;
                 D->Type[1].C = T_END;
@@ -929,12 +1219,15 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
         case TOK_SHORT:
             NextToken ();
             if (CurTok.Tok == TOK_UNSIGNED) {
+                if (SignednessSpecified != NULL) {
+                    *SignednessSpecified = 1;
+                }
                 NextToken ();
                 OptionalInt ();
                 D->Type[0].C = T_USHORT;
                 D->Type[1].C = T_END;
             } else {
-                OptionalSigned ();
+                OptionalSigned (SignednessSpecified);
                 OptionalInt ();
                 D->Type[0].C = T_SHORT;
                 D->Type[1].C = T_END;
@@ -948,6 +1241,9 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
             break;
 
        case TOK_SIGNED:
+            if (SignednessSpecified != NULL) {
+                *SignednessSpecified = 1;
+            }
             NextToken ();
             switch (CurTok.Tok) {
 
@@ -983,6 +1279,9 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
             break;
 
         case TOK_UNSIGNED:
+            if (SignednessSpecified != NULL) {
+                *SignednessSpecified = 1;
+            }
             NextToken ();
             switch (CurTok.Tok) {
 
@@ -1044,7 +1343,7 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
             Entry = ParseUnionDecl (Ident);
             /* Encode the union entry into the type */
             D->Type[0].C = T_UNION;
-            SetSymEntry (D->Type, Entry);
+            SetESUSymEntry (D->Type, Entry);
             D->Type[1].C = T_END;
             break;
 
@@ -1063,44 +1362,50 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers)
             Entry = ParseStructDecl (Ident);
             /* Encode the struct entry into the type */
             D->Type[0].C = T_STRUCT;
-            SetSymEntry (D->Type, Entry);
+            SetESUSymEntry (D->Type, Entry);
             D->Type[1].C = T_END;
             break;
 
         case TOK_ENUM:
             NextToken ();
-            if (CurTok.Tok != TOK_LCURLY) {
-                /* Named enum */
-                if (CurTok.Tok == TOK_IDENT) {
-                    /* Find an entry with this name */
-                    Entry = FindTagSym (CurTok.Ident);
-                    if (Entry) {
-                        if (SymIsLocal (Entry) && (Entry->Flags & SC_ENUM) == 0) {
-                            Error ("Symbol '%s' is already different kind", Entry->Name);
-                        }
-                    } else {
-                        /* Insert entry into table ### */
-                    }
-                    /* Skip the identifier */
-                    NextToken ();
-                } else {
+            /* Named enum */
+            if (CurTok.Tok == TOK_IDENT) {
+                strcpy (Ident, CurTok.Ident);
+                NextToken ();
+            } else {
+                if (CurTok.Tok != TOK_LCURLY) {
                     Error ("Identifier expected");
+                } else {
+                    AnonName (Ident, "enum");
                 }
             }
             /* Remember we have an extra type decl */
             D->Flags |= DS_EXTRA_TYPE;
             /* Parse the enum decl */
-            ParseEnumDecl ();
-            D->Type[0].C = T_INT;
+            Entry = ParseEnumDecl (Ident);
+            D->Type[0].C |= T_ENUM;
+            SetESUSymEntry (D->Type, Entry);
             D->Type[1].C = T_END;
             break;
 
         case TOK_IDENT:
-            Entry = FindSym (CurTok.Ident);
-            if (Entry && SymIsTypeDef (Entry)) {
-                /* It's a typedef */
-                NextToken ();
-                TypeCopy (D->Type, Entry->Type);
+            /* This could be a label */
+            if (NextTok.Tok != TOK_COLON) {
+                Entry = FindSym (CurTok.Ident);
+                if (Entry && SymIsTypeDef (Entry)) {
+                    /* It's a typedef */
+                    NextToken ();
+                    TypeCopy (D->Type, Entry->Type);
+                    break;
+                }
+            } else {
+                /* This is a label. Use the default type flag to end the loop
+                ** in DeclareLocals. The type code used here doesn't matter as
+                ** long as it has no qualifiers.
+                */
+                D->Flags |= DS_DEF_TYPE;
+                D->Type[0].C = T_QUAL_NONE;
+                D->Type[1].C = T_END;
                 break;
             }
             /* FALL THROUGH */
@@ -1481,7 +1786,7 @@ static void Declarator (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
             /* Was there a previous entry? If so, copy WrappedCall info from it */
             PrevEntry = FindGlobalSym (D->Ident);
             if (PrevEntry && PrevEntry->Flags & SC_FUNC) {
-                FuncDesc* D = PrevEntry->V.F.Func;
+                FuncDesc* D = GetFuncDesc (PrevEntry->Type);
                 if (D->WrappedCall && !F->WrappedCall) {
                     F->WrappedCall = D->WrappedCall;
                     F->WrappedCallData = D->WrappedCallData;
@@ -1567,7 +1872,7 @@ Type* ParseType (Type* T)
 
     /* Get a type without a default */
     InitDeclSpec (&Spec);
-    ParseTypeSpec (&Spec, -1, T_QUAL_NONE);
+    ParseTypeSpec (&Spec, -1, T_QUAL_NONE, NULL);
 
     /* Parse additional declarators */
     ParseDecl (&Spec, &Decl, DM_NO_IDENT);
@@ -1584,6 +1889,9 @@ Type* ParseType (Type* T)
 void ParseDecl (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
 /* Parse a variable, type or function declaration */
 {
+    /* Used to check if we have any errors during parsing this */
+    unsigned PrevErrorCount = ErrorCount;
+
     /* Initialize the Declaration struct */
     InitDeclaration (D);
 
@@ -1624,7 +1932,7 @@ void ParseDecl (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
         /* The return type must not be qualified */
         if (GetQualifier (RetType) != T_QUAL_NONE && RetType[1].C == T_END) {
 
-            if (GetType (RetType) == T_TYPE_VOID) {
+            if (GetRawType (RetType) == T_TYPE_VOID) {
                 /* A qualified void type is always an error */
                 Error ("function definition has qualified void return type");
             } else {
@@ -1661,8 +1969,8 @@ void ParseDecl (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
         }
     }
 
-    /* Check the size of the generated type */
     if (!IsTypeFunc (D->Type) && !IsTypeVoid (D->Type)) {
+        /* Check the size of the generated type */
         unsigned Size = SizeOf (D->Type);
         if (Size >= 0x10000) {
             if (D->Ident[0] != '\0') {
@@ -1671,8 +1979,12 @@ void ParseDecl (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
                 Error ("Invalid size in declaration (0x%06X)", Size);
             }
         }
-    }
 
+        if (PrevErrorCount != ErrorCount) {
+            /* Don't give storage if the declaration is not parsed correctly */
+            D->StorageClass |= SC_DECL | SC_FICTITIOUS;
+        }
+    }
 }
 
 
@@ -1692,7 +2004,7 @@ void ParseDeclSpec (DeclSpec* D, unsigned DefStorage, long DefType)
     ParseStorageClass (D, DefStorage);
 
     /* Parse the type specifiers passing any initial type qualifiers */
-    ParseTypeSpec (D, DefType, Qualifiers);
+    ParseTypeSpec (D, DefType, Qualifiers, NULL);
 }
 
 
@@ -1710,18 +2022,20 @@ void CheckEmptyDecl (const DeclSpec* D)
 
 
 
-static void SkipInitializer (unsigned BracesExpected)
+static void SkipInitializer (int BracesExpected)
 /* Skip the remainder of an initializer in case of errors. Try to be somewhat
 ** smart so we don't have too many following errors.
 */
 {
-    while (CurTok.Tok != TOK_CEOF && CurTok.Tok != TOK_SEMI && BracesExpected > 0) {
+    while (CurTok.Tok != TOK_CEOF && CurTok.Tok != TOK_SEMI && BracesExpected >= 0) {
         switch (CurTok.Tok) {
             case TOK_RCURLY:    --BracesExpected;   break;
             case TOK_LCURLY:    ++BracesExpected;   break;
             default:                                break;
         }
-        NextToken ();
+        if (BracesExpected >= 0) {
+            NextToken ();
+        }
     }
 }
 
@@ -1753,6 +2067,7 @@ static void ClosingCurlyBraces (unsigned BracesExpected)
 */
 {
     while (BracesExpected) {
+        /* TODO: Skip all excess initializers until next closing curly brace */
         if (CurTok.Tok == TOK_RCURLY) {
             NextToken ();
         } else if (CurTok.Tok == TOK_COMMA && NextTok.Tok == TOK_RCURLY) {
@@ -1905,10 +2220,11 @@ static unsigned ParsePointerInit (Type* T)
 
 
 
-static unsigned ParseArrayInit (Type* T, int AllowFlexibleMembers)
+static unsigned ParseArrayInit (Type* T, int* Braces, int AllowFlexibleMembers)
 /* Parse initializaton for arrays. Return the number of data bytes. */
 {
     int Count;
+    int HasCurly = 0;
 
     /* Get the array data */
     Type* ElementType    = GetElementType (T);
@@ -1916,7 +2232,7 @@ static unsigned ParseArrayInit (Type* T, int AllowFlexibleMembers)
     long ElementCount    = GetElementCount (T);
 
     /* Special handling for a character array initialized by a literal */
-    if (IsTypeChar (ElementType) &&
+    if (IsClassChar (ElementType) &&
         (CurTok.Tok == TOK_SCONST || CurTok.Tok == TOK_WCSCONST ||
         (CurTok.Tok == TOK_LCURLY &&
          (NextTok.Tok == TOK_SCONST || NextTok.Tok == TOK_WCSCONST)))) {
@@ -1961,8 +2277,12 @@ static unsigned ParseArrayInit (Type* T, int AllowFlexibleMembers)
 
     } else {
 
-        /* Curly brace */
-        ConsumeLCurly ();
+        /* Arrays can be initialized without a pair of curly braces */
+        if (*Braces == 0 || CurTok.Tok == TOK_LCURLY) {
+            /* Consume the opening curly brace */
+            HasCurly = ConsumeLCurly ();
+            *Braces += HasCurly;
+        }
 
         /* Initialize the array members */
         Count = 0;
@@ -1971,15 +2291,17 @@ static unsigned ParseArrayInit (Type* T, int AllowFlexibleMembers)
             ** an array (because the size of each element may differ
             ** otherwise).
             */
-            ParseInitInternal (ElementType, 0);
+            ParseInitInternal (ElementType, Braces, 0);
             ++Count;
             if (CurTok.Tok != TOK_COMMA)
                 break;
             NextToken ();
         }
 
-        /* Closing curly braces */
-        ConsumeRCurly ();
+        if (HasCurly) {
+            /* Closing curly braces */
+            ConsumeRCurly ();
+        }
     }
 
     if (ElementCount == UNSPECIFIED) {
@@ -1993,27 +2315,33 @@ static unsigned ParseArrayInit (Type* T, int AllowFlexibleMembers)
         ElementCount = Count;
     } else if (Count < ElementCount) {
         g_zerobytes ((ElementCount - Count) * ElementSize);
-    } else if (Count > ElementCount) {
-        Error ("Too many initializers");
+    } else if (Count > ElementCount && HasCurly) {
+        Error ("Excess elements in array initializer");
     }
     return ElementCount * ElementSize;
 }
 
 
 
-static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
+static unsigned ParseStructInit (Type* T, int* Braces, int AllowFlexibleMembers)
 /* Parse initialization of a struct or union. Return the number of data bytes. */
 {
     SymEntry*       Entry;
     SymTable*       Tab;
     StructInitData  SI;
+    int             HasCurly  = 0;
+    int             SkipComma = 0;
 
 
-    /* Consume the opening curly brace */
-    ConsumeLCurly ();
+    /* Fields can be initialized without a pair of curly braces */
+    if (*Braces == 0 || CurTok.Tok == TOK_LCURLY) {
+        /* Consume the opening curly brace */
+        HasCurly = ConsumeLCurly ();
+        *Braces += HasCurly;
+    }
 
     /* Get a pointer to the struct entry from the type */
-    Entry = GetSymEntry (T);
+    Entry = GetESUSymEntry (T);
 
     /* Get the size of the struct from the symbol table entry */
     SI.Size = Entry->V.S.Size;
@@ -2025,7 +2353,7 @@ static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
     if (Tab == 0) {
         Error ("Cannot initialize variables with incomplete type");
         /* Try error recovery */
-        SkipInitializer (1);
+        SkipInitializer (HasCurly);
         /* Nothing initialized */
         return 0;
     }
@@ -2039,18 +2367,58 @@ static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
     SI.ValBits = 0;
     while (CurTok.Tok != TOK_RCURLY) {
 
-        /* */
+        /* Check for excess elements */
         if (Entry == 0) {
-            Error ("Too many initializers");
-            SkipInitializer (1);
+            /* Is there just one trailing comma before a closing curly? */
+            if (NextTok.Tok == TOK_RCURLY && CurTok.Tok == TOK_COMMA) {
+                /* Skip comma and exit scope */
+                NextToken ();
+                break;
+            }
+
+            if (HasCurly) {
+                Error ("Excess elements in %s initializer", GetBasicTypeName (T));
+                SkipInitializer (HasCurly);
+            }
             return SI.Offs;
         }
 
-        /* Parse initialization of one field. Bit-fields need a special
-        ** handling.
+        /* Check for special members that don't consume the initializer */
+        if ((Entry->Flags & SC_ALIAS) == SC_ALIAS) {
+            /* Just skip */
+            goto NextMember;
+        }
+
+        /* This may be an anonymous bit-field, in which case it doesn't
+        ** have an initializer.
         */
+        if (SymIsBitField (Entry) && (IsAnonName (Entry->Name))) {
+            /* Account for the data and output it if we have at least a full
+            ** word. We may have more if there was storage unit overlap, for
+            ** example two consecutive 10 bit fields. These will be packed
+            ** into 3 bytes.
+            */
+            SI.ValBits += Entry->V.B.BitWidth;
+            /* TODO: Generalize this so any type can be used. */
+            CHECK (SI.ValBits <= CHAR_BITS + INT_BITS - 2);
+            while (SI.ValBits >= CHAR_BITS) {
+                OutputBitFieldData (&SI);
+            }
+            /* Avoid consuming the comma if any */
+            goto NextMember;
+        }
+
+        /* Skip comma this round */
+        if (SkipComma) {
+            NextToken ();
+            SkipComma = 0;
+        }
+
         if (SymIsBitField (Entry)) {
 
+            /* Parse initialization of one field. Bit-fields need a special
+            ** handling.
+            */
             ExprDesc ED;
             unsigned Val;
             unsigned Shift;
@@ -2062,35 +2430,34 @@ static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
             CHECK (Entry->V.B.Offs * CHAR_BITS + Entry->V.B.BitOffs ==
                    SI.Offs         * CHAR_BITS + SI.ValBits);
 
-            /* This may be an anonymous bit-field, in which case it doesn't
-            ** have an initializer.
+            /* Read the data, check for a constant integer, do a range check */
+            ParseScalarInitInternal (Entry->Type, &ED);
+            if (!ED_IsConstAbsInt (&ED)) {
+                Error ("Constant initializer expected");
+                ED_MakeConstAbsInt (&ED, 1);
+            }
+
+            /* Truncate the initializer value to the width of the bit-field and check if we lost
+            ** any useful bits.
             */
-            if (IsAnonName (Entry->Name)) {
-                /* Account for the data and output it if we have at least a
-                ** full word.  We may have more if there was storage unit
-                ** overlap, for example two consecutive 10 bit fields.
-                ** These will be packed into 3 bytes.
-                */
-                SI.ValBits += Entry->V.B.BitWidth;
-                CHECK (SI.ValBits <= CHAR_BITS + INT_BITS - 2);
-                while (SI.ValBits >= CHAR_BITS) {
-                    OutputBitFieldData (&SI);
+            Val = (unsigned) ED.IVal & Mask;
+            if (IsSignUnsigned (Entry->Type)) {
+                if (ED.IVal < 0 || (unsigned long) ED.IVal != Val) {
+                    Warning ("Implicit truncation from '%s' to '%s : %u' in bit-field initializer"
+                             " changes value from %ld to %u",
+                             GetFullTypeName (ED.Type), GetFullTypeName (Entry->Type),
+                             Entry->V.B.BitWidth, ED.IVal, Val);
                 }
-                goto NextMember;
             } else {
-                /* Read the data, check for a constant integer, do a range
-                ** check.
-                */
-                ParseScalarInitInternal (type_uint, &ED);
-                if (!ED_IsConstAbsInt (&ED)) {
-                    Error ("Constant initializer expected");
-                    ED_MakeConstAbsInt (&ED, 1);
+                /* Sign extend back to full width of host long. */
+                unsigned ShiftBits = sizeof (long) * CHAR_BIT - Entry->V.B.BitWidth;
+                long RestoredVal = asr_l(asl_l (Val, ShiftBits), ShiftBits);
+                if (ED.IVal != RestoredVal) {
+                    Warning ("Implicit truncation from '%s' to '%s : %u' in bit-field initializer "
+                             "changes value from %ld to %d",
+                             GetFullTypeName (ED.Type), GetFullTypeName (Entry->Type),
+                             Entry->V.B.BitWidth, ED.IVal, Val);
                 }
-                if (ED.IVal > (long) Mask) {
-                    Warning ("Truncating value in bit-field initializer");
-                    ED.IVal &= (long) Mask;
-                }
-                Val = (unsigned) ED.IVal;
             }
 
             /* Add the value to the currently stored bit-field value */
@@ -2106,6 +2473,7 @@ static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
             ** aligned, so will have padding before it.
             */
             CHECK (SI.ValBits <= CHAR_BIT * sizeof(SI.BitVal));
+            /* TODO: Generalize this so any type can be used. */
             CHECK (SI.ValBits <= CHAR_BITS + INT_BITS - 2);
             while (SI.ValBits >= CHAR_BITS) {
                 OutputBitFieldData (&SI);
@@ -2114,14 +2482,15 @@ static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
         } else {
 
             /* Standard member. We should never have stuff from a
-            ** bit-field left
+            ** bit-field left because an anonymous member was added
+            ** for padding by ParseStructDecl.
             */
             CHECK (SI.ValBits == 0);
 
             /* Flexible array members may only be initialized if they are
             ** the last field (or part of the last struct field).
             */
-            SI.Offs += ParseInitInternal (Entry->Type, AllowFlexibleMembers && Entry->NextSym == 0);
+            SI.Offs += ParseInitInternal (Entry->Type, Braces, AllowFlexibleMembers && Entry->NextSym == 0);
         }
 
         /* More initializers? */
@@ -2129,8 +2498,8 @@ static unsigned ParseStructInit (Type* T, int AllowFlexibleMembers)
             break;
         }
 
-        /* Skip the comma */
-        NextToken ();
+        /* Skip the comma next round */
+        SkipComma = 1;
 
 NextMember:
         /* Next member. For unions, only the first one can be initialized */
@@ -2143,8 +2512,10 @@ NextMember:
         }
     }
 
-    /* Consume the closing curly brace */
-    ConsumeRCurly ();
+    if (HasCurly) {
+        /* Consume the closing curly brace */
+        ConsumeRCurly ();
+    }
 
     /* If we have data from a bit-field left, output it now */
     CHECK (SI.ValBits < CHAR_BITS);
@@ -2180,7 +2551,7 @@ static unsigned ParseVoidInit (Type* T)
     Size = 0;
     do {
         ConstExpr (hie1, &Expr);
-        switch (UnqualifiedType (Expr.Type[0].C)) {
+        switch (GetUnderlyingTypeCode (&Expr.Type[0])) {
 
             case T_SCHAR:
             case T_UCHAR:
@@ -2241,10 +2612,10 @@ static unsigned ParseVoidInit (Type* T)
 
 
 
-static unsigned ParseInitInternal (Type* T, int AllowFlexibleMembers)
+static unsigned ParseInitInternal (Type* T, int *Braces, int AllowFlexibleMembers)
 /* Parse initialization of variables. Return the number of data bytes. */
 {
-    switch (UnqualifiedType (T->C)) {
+    switch (GetUnderlyingTypeCode (T)) {
 
         case T_SCHAR:
         case T_UCHAR:
@@ -2262,11 +2633,17 @@ static unsigned ParseInitInternal (Type* T, int AllowFlexibleMembers)
             return ParsePointerInit (T);
 
         case T_ARRAY:
-            return ParseArrayInit (T, AllowFlexibleMembers);
+            return ParseArrayInit (T, Braces, AllowFlexibleMembers);
 
         case T_STRUCT:
         case T_UNION:
-            return ParseStructInit (T, AllowFlexibleMembers);
+            return ParseStructInit (T, Braces, AllowFlexibleMembers);
+
+        case T_ENUM:
+            /* Incomplete enum type must have already raised errors.
+            ** Just proceed to consume the value.
+            */
+            return ParseScalarInit (T);
 
         case T_VOID:
             if (IS_Get (&Standard) == STD_CC65) {
@@ -2287,10 +2664,13 @@ static unsigned ParseInitInternal (Type* T, int AllowFlexibleMembers)
 unsigned ParseInit (Type* T)
 /* Parse initialization of variables. Return the number of data bytes. */
 {
+    /* Current curly braces layers */
+    int Braces = 0;
+
     /* Parse the initialization. Flexible array members can only be initialized
     ** in cc65 mode.
     */
-    unsigned Size = ParseInitInternal (T, IS_Get (&Standard) == STD_CC65);
+    unsigned Size = ParseInitInternal (T, &Braces, IS_Get (&Standard) == STD_CC65);
 
     /* The initialization may not generate code on global level, because code
     ** outside function scope will never get executed.

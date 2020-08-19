@@ -72,7 +72,7 @@ Function* CurrentFunc = 0;
 
 
 
-static Function* NewFunction (struct SymEntry* Sym)
+static Function* NewFunction (struct SymEntry* Sym, FuncDesc* D)
 /* Create a new function activation structure and return it */
 {
     /* Allocate a new structure */
@@ -81,7 +81,7 @@ static Function* NewFunction (struct SymEntry* Sym)
     /* Initialize the fields */
     F->FuncEntry  = Sym;
     F->ReturnType = GetFuncReturn (Sym->Type);
-    F->Desc       = GetFuncDesc (Sym->Type);
+    F->Desc       = D;
     F->Reserved   = 0;
     F->RetLab     = GetLocalLabel ();
     F->TopLevelSP = 0;
@@ -295,7 +295,7 @@ static void F_RestoreRegVars (Function* F)
     }
 
     /* Get the first symbol from the function symbol table */
-    Sym = F->FuncEntry->V.F.Func->SymTab->SymHead;
+    Sym = F->Desc->SymTab->SymHead;
 
     /* Walk through all symbols checking for register variables */
     while (Sym) {
@@ -375,18 +375,18 @@ static void F_EmitDebugInfo (void)
 
 
 
-void NewFunc (SymEntry* Func)
+void NewFunc (SymEntry* Func, FuncDesc* D)
 /* Parse argument declarations and function body. */
 {
     int         C99MainFunc = 0;/* Flag for C99 main function returning int */
     SymEntry*   Param;
     const Type* RType;          /* Real type used for struct parameters */
 
-    /* Get the function descriptor from the function entry */
-    FuncDesc* D = Func->V.F.Func;
+    /* Remember this function descriptor used for definition */
+    GetFuncDesc (Func->Type)->FuncDef = D;
 
     /* Allocate the function activation record for the function */
-    CurrentFunc = NewFunction (Func);
+    CurrentFunc = NewFunction (Func, D);
 
     /* Reenter the lexical level */
     ReenterFunctionLevel (D);
@@ -452,7 +452,7 @@ void NewFunc (SymEntry* Func)
         /* Determine if this is a main function in a C99 environment that
         ** returns an int.
         */
-        if (IsTypeInt (F_GetReturnType (CurrentFunc)) &&
+        if (IsRawTypeInt (F_GetReturnType (CurrentFunc)) &&
             IS_Get (&Standard) == STD_C99) {
             C99MainFunc = 1;
         }
@@ -487,7 +487,7 @@ void NewFunc (SymEntry* Func)
     }
 
     /* Generate function entry code if needed */
-    g_enter (TypeOf (Func->Type), F_GetParamSize (CurrentFunc));
+    g_enter (FuncTypeOf (Func->Type), F_GetParamSize (CurrentFunc));
 
     /* If stack checking code is requested, emit a call to the helper routine */
     if (IS_Get (&CheckStack)) {
@@ -513,7 +513,7 @@ void NewFunc (SymEntry* Func)
             ** We don't currently support this case.
             */
             if (RType == Param->Type) {
-                Error ("Passing %s of this size by value is not supported", GetBasicTypeName (Param->Type));
+                Error ("Passing '%s' of this size by value is not supported", GetFullTypeName (Param->Type));
             }
         }
 

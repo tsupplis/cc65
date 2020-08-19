@@ -1,5 +1,5 @@
 /*
-  Copyright 2020 Google LLC
+  Copyright 2020 The cc65 Authors
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -30,7 +30,11 @@ static struct signed_ints {
     signed int a : 3;
     signed int b : 3;
     signed int c : 3;
-} si = {-4, -1, 3};
+    signed int d : 10;
+    signed int : 0;
+    signed int e : 8;
+    signed int f : 16;
+} si = {-4, -1, 3, -500, -100, -5000};
 
 static void test_signed_bitfield(void)
 {
@@ -52,7 +56,7 @@ static void test_signed_bitfield(void)
         failures++;
     }
 
-    if (si.b <= 0) {
+    if (si.c <= 0) {
         printf("Got si.c = %d, expected positive.\n", si.c);
         failures++;
     }
@@ -61,9 +65,39 @@ static void test_signed_bitfield(void)
         failures++;
     }
 
+    if (si.d >= 0) {
+        printf("Got si.d = %d, expected negative.\n", si.d);
+        failures++;
+    }
+    if (si.d != -500) {
+        printf("Got si.d = %d, expected -500.\n", si.d);
+        failures++;
+    }
+
+    if (si.e >= 0) {
+        printf("Got si.e = %d, expected negative.\n", si.e);
+        failures++;
+    }
+    if (si.e != -100) {
+        printf("Got si.e = %d, expected -100.\n", si.e);
+        failures++;
+    }
+
+    if (si.f >= 0) {
+        printf("Got si.f = %d, expected negative.\n", si.f);
+        failures++;
+    }
+    if (si.f != -5000) {
+        printf("Got si.f = %d, expected -5000.\n", si.f);
+        failures++;
+    }
+
     si.a = -3;
     si.b = 1;
     si.c = -2;
+    si.d = 500;
+    si.e = 100;
+    si.f = 5000;
 
     if (si.a >= 0) {
         printf("Got si.a = %d, expected negative.\n", si.a);
@@ -83,12 +117,39 @@ static void test_signed_bitfield(void)
         failures++;
     }
 
-    if (si.b >= 0) {
+    if (si.c >= 0) {
         printf("Got si.c = %d, expected negative.\n", si.c);
         failures++;
     }
     if (si.c != -2) {
         printf("Got si.c = %d, expected -2.\n", si.c);
+        failures++;
+    }
+
+    if (si.d <= 0) {
+        printf("Got si.d = %d, expected positive.\n", si.d);
+        failures++;
+    }
+    if (si.d != 500) {
+        printf("Got si.d = %d, expected 500.\n", si.d);
+        failures++;
+    }
+
+    if (si.e <= 0) {
+        printf("Got si.e = %d, expected positive.\n", si.e);
+        failures++;
+    }
+    if (si.e != 100) {
+        printf("Got si.e = %d, expected 100.\n", si.e);
+        failures++;
+    }
+
+    if (si.f <= 0) {
+        printf("Got si.f = %d, expected positive.\n", si.f);
+        failures++;
+    }
+    if (si.f != 5000) {
+        printf("Got si.f = %d, expected 5000.\n", si.f);
         failures++;
     }
 }

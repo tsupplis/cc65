@@ -750,7 +750,7 @@ static void OptRodataName (const char* Opt attribute ((unused)), const char* Arg
 
 static void OptSignedChars (const char* Opt attribute ((unused)),
                             const char* Arg attribute ((unused)))
-/* Make default characters signed */
+/* Use 'signed char' as the underlying type of 'char' */
 {
     IS_Set (&SignedChars, 1);
 }
@@ -1079,13 +1079,16 @@ int main (int argc, char* argv[])
         IS_Set (&Standard, STD_DEFAULT);
     }
 
+    /* Track string buffer allocation */
+    InitDiagnosticStrBufs ();
+
     /* Go! */
     Compile (InputFile);
 
     /* Create the output file if we didn't had any errors */
     if (PreprocessOnly == 0 && (ErrorCount == 0 || Debug)) {
 
-        /* Emit literals, externals, do cleanup and optimizations */
+        /* Emit literals, do cleanup and optimizations */
         FinishCompile ();
 
         /* Open the file */
@@ -1101,6 +1104,9 @@ int main (int argc, char* argv[])
         /* Create dependencies if requested */
         CreateDependencies ();
     }
+
+    /* Done with tracked string buffer allocation */
+    DoneDiagnosticStrBufs ();
 
     /* Return an apropriate exit code */
     return (ErrorCount > 0)? EXIT_FAILURE : EXIT_SUCCESS;

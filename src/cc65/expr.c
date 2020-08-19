@@ -140,27 +140,61 @@ void MarkedExprWithCheck (void (*Func) (ExprDesc*), ExprDesc* Expr)
 
 
 
-static Type* promoteint (Type* lhst, Type* rhst)
-/* In an expression with two ints, return the type of the result */
+static Type* ArithmeticConvert (Type* lhst, Type* rhst)
+/* Perform the usual arithmetic conversions for binary operators. */
 {
-    /* Rules for integer types:
-    **   - If one of the values is a long, the result is long.
-    **   - If one of the values is unsigned, the result is also unsigned.
-    **   - Otherwise the result is an int.
+    /* https://port70.net/~nsz/c/c89/c89-draft.html#3.2.1.5
+    ** Many binary operators that expect operands of arithmetic type cause conversions and yield
+    ** result types in a similar way. The purpose is to yield a common type, which is also the type
+    ** of the result. This pattern is called the usual arithmetic conversions.
+    */
+
+    /* There are additional rules for floating point types that we don't bother with, since
+    ** floating point types are not (yet) supported.
+    ** The integral promotions are performed on both operands.
+    */
+    lhst = IntPromotion (lhst);
+    rhst = IntPromotion (rhst);
+
+    /* If either operand has type unsigned long int, the other operand is converted to
+    ** unsigned long int.
+    */
+    if ((IsTypeLong (lhst) && IsSignUnsigned (lhst)) ||
+        (IsTypeLong (rhst) && IsSignUnsigned (rhst))) {
+        return type_ulong;
+    }
+
+    /* Otherwise, if one operand has type long int and the other has type unsigned int,
+    ** if a long int can represent all values of an unsigned int, the operand of type unsigned int
+    ** is converted to long int ; if a long int cannot represent all the values of an unsigned int,
+    ** both operands are converted to unsigned long int.
+    */
+    if ((IsTypeLong (lhst) && IsTypeInt (rhst) && IsSignUnsigned (rhst)) ||
+        (IsTypeLong (rhst) && IsTypeInt (lhst) && IsSignUnsigned (lhst))) {
+        /* long can represent all unsigneds, so we are in the first sub-case. */
+        return type_long;
+    }
+
+    /* Otherwise, if either operand has type long int, the other operand is converted to long int.
     */
     if (IsTypeLong (lhst) || IsTypeLong (rhst)) {
-        if (IsSignUnsigned (lhst) || IsSignUnsigned (rhst)) {
-            return type_ulong;
-        } else {
-            return type_long;
-        }
-    } else {
-        if (IsSignUnsigned (lhst) || IsSignUnsigned (rhst)) {
-            return type_uint;
-        } else {
-            return type_int;
-        }
+        return type_long;
     }
+
+    /* Otherwise, if either operand has type unsigned int, the other operand is converted to
+    ** unsigned int.
+    */
+    if ((IsTypeInt (lhst) && IsSignUnsigned (lhst)) ||
+        (IsTypeInt (rhst) && IsSignUnsigned (rhst))) {
+        return type_uint;
+    }
+
+    /* Otherwise, both operands have type int. */
+    CHECK (IsTypeInt (lhst));
+    CHECK (IsSignSigned (lhst));
+    CHECK (IsTypeInt (rhst));
+    CHECK (IsSignSigned (rhst));
+    return type_int;
 }
 
 
@@ -198,7 +232,7 @@ static unsigned typeadjust (ExprDesc* lhs, ExprDesc* rhs, int NoPush)
     flags = g_typeadjust (ltype, rtype);
 
     /* Set the type of the result */
-    lhs->Type = promoteint (lhst, rhst);
+    lhs->Type = ArithmeticConvert (lhst, rhst);
 
     /* Return the code generator flags */
     return flags;
@@ -244,6 +278,23 @@ static int TypeSpecAhead (void)
 
 
 
+static unsigned ExprCheckedSizeOf (const Type* T)
+/* Specially checked SizeOf() used in 'sizeof' expressions */
+{
+    unsigned Size = SizeOf (T);
+    SymEntry* Sym;
+
+    if (Size == 0) {
+        Sym = GetSymType (T);
+        if (Sym == 0 || !SymIsDef (Sym)) {
+            Error ("Cannot apply 'sizeof' to incomplete type '%s'", GetFullTypeName (T));
+        }
+    }
+    return Size;
+}
+
+
+
 void PushAddr (const ExprDesc* Expr)
 /* If the expression contains an address that was somehow evaluated,
 ** push this address on the stack. This is a helper function for all
@@ -279,32 +330,30 @@ static void WarnConstCompareResult (void)
 
 
 static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
-/* Parse a function parameter list, and pass the parameters to the called
+/* Parse a function parameter list, and pass the arguments to the called
 ** function. Depending on several criteria, this may be done by just pushing
-** each parameter separately, or creating the parameter frame once, and then
-** storing into this frame.
-** The function returns the size of the parameters pushed.
+** into each parameter separately, or creating the parameter frame once, and
+** then storing into this frame.
+** The function returns the size of the arguments pushed in bytes.
 */
 {
-    ExprDesc Expr;
-
     /* Initialize variables */
     SymEntry* Param       = 0;  /* Keep gcc silent */
-    unsigned  ParamSize   = 0;  /* Size of parameters pushed */
-    unsigned  ParamCount  = 0;  /* Number of parameters pushed */
+    unsigned  PushedSize  = 0;  /* Size of arguments pushed */
+    unsigned  PushedCount = 0;  /* Number of arguments pushed */
     unsigned  FrameSize   = 0;  /* Size of parameter frame */
-    unsigned  FrameParams = 0;  /* Number of params in frame */
+    unsigned  FrameParams = 0;  /* Number of parameters in frame */
     int       FrameOffs   = 0;  /* Offset into parameter frame */
     int       Ellipsis    = 0;  /* Function is variadic */
 
     /* As an optimization, we may allocate the complete parameter frame at
-    ** once instead of pushing each parameter as it comes. We may do that,
+    ** once instead of pushing into each parameter as it comes. We may do that,
     ** if...
     **
     **  - optimizations that increase code size are enabled (allocating the
     **    stack frame at once gives usually larger code).
-    **  - we have more than one parameter to push (don't count the last param
-    **    for __fastcall__ functions).
+    **  - we have more than one parameter to push into (don't count the last
+    **    parameter for __fastcall__ functions).
     **
     ** The FrameSize variable will contain a value > 0 if storing into a frame
     ** (instead of pushing) is enabled.
@@ -316,7 +365,7 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
         FrameParams = Func->ParamCount;
         FrameSize   = Func->ParamSize;
         if (FrameParams > 0 && IsFastcall) {
-            /* Last parameter is not pushed */
+            /* Last parameter is not pushed into */
             FrameSize -= CheckedSizeOf (Func->LastParam->Type);
             --FrameParams;
         }
@@ -333,25 +382,26 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
         }
     }
 
-    /* Parse the actual parameter list */
+    /* Parse the actual argument list */
     while (CurTok.Tok != TOK_RPAREN) {
 
         unsigned Flags;
+        ExprDesc Expr;
 
         /* Count arguments */
-        ++ParamCount;
+        ++PushedCount;
 
         /* Fetch the pointer to the next argument, check for too many args */
-        if (ParamCount <= Func->ParamCount) {
+        if (PushedCount <= Func->ParamCount) {
             /* Beware: If there are parameters with identical names, they
             ** cannot go into the same symbol table, which means that, in this
             ** case of errorneous input, the number of nodes in the symbol
-            ** table and ParamCount are NOT equal. We have to handle this case
+            ** table and PushedCount are NOT equal. We have to handle this case
             ** below to avoid segmentation violations. Since we know that this
             ** problem can only occur if there is more than one parameter,
             ** we will just use the last one.
             */
-            if (ParamCount == 1) {
+            if (PushedCount == 1) {
                 /* First argument */
                 Param = Func->SymTab->SymHead;
             } else if (Param->NextSym != 0) {
@@ -371,11 +421,11 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
             Ellipsis = 1;
         }
 
-        /* Evaluate the parameter expression */
+        /* Evaluate the argument expression */
         hie1 (&Expr);
 
-        /* If we don't have an argument spec., accept anything; otherwise,
-        ** convert the actual argument to the type needed.
+        /* If we don't have a prototype, accept anything; otherwise, convert
+        ** the actual argument to the parameter type needed.
         */
         Flags = CF_NONE;
         if (!Ellipsis) {
@@ -432,7 +482,7 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
             }
 
             /* Calculate total parameter size */
-            ParamSize += ArgSize;
+            PushedSize += ArgSize;
         }
 
         /* Check for end of argument list */
@@ -448,20 +498,20 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
         }
     }
 
-    /* Check if we had enough parameters */
-    if (ParamCount < Func->ParamCount) {
+    /* Check if we had enough arguments */
+    if (PushedCount < Func->ParamCount) {
         Error ("Too few arguments in function call");
     }
 
-    /* The function returns the size of all parameters pushed onto the stack.
-    ** However, if there are parameters missing (which is an error, and was
+    /* The function returns the size of all arguments pushed onto the stack.
+    ** However, if there are parameters missed (which is an error, and was
     ** flagged by the compiler), AND a stack frame was preallocated above,
     ** we would loose track of the stackpointer, and generate an internal error
     ** later. So we correct the value by the parameters that should have been
-    ** pushed, to avoid an internal compiler error. Since an error was
+    ** pushed into, to avoid an internal compiler error. Since an error was
     ** generated before, no code will be output anyway.
     */
-    return ParamSize + FrameSize;
+    return PushedSize + FrameSize;
 }
 
 
@@ -585,7 +635,7 @@ static void FunctionCall (ExprDesc* Expr)
             }
 
             /* Call the function */
-            g_callind (TypeOf (Expr->Type+1), ParamSize, PtrOffs);
+            g_callind (FuncTypeOf (Expr->Type+1), ParamSize, PtrOffs);
 
         } else {
 
@@ -646,9 +696,9 @@ static void FunctionCall (ExprDesc* Expr)
 
             SB_Done (&S);
 
-            g_call (TypeOf (Expr->Type), Func->WrappedCall->Name, ParamSize);
+            g_call (FuncTypeOf (Expr->Type), Func->WrappedCall->Name, ParamSize);
         } else {
-            g_call (TypeOf (Expr->Type), (const char*) Expr->Name, ParamSize);
+            g_call (FuncTypeOf (Expr->Type), (const char*) Expr->Name, ParamSize);
         }
 
     }
@@ -903,8 +953,35 @@ static void Primary (ExprDesc* E)
             /* Illegal primary. Be sure to skip the token to avoid endless
             ** error loops.
             */
-            Error ("Expression expected");
-            NextToken ();
+            {
+                /* Let's see if this is a C99-style declaration */
+                DeclSpec    Spec;
+                InitDeclSpec (&Spec);
+                ParseDeclSpec (&Spec, -1, T_QUAL_NONE);
+
+                if (Spec.Type->C != T_END) {
+
+                    Error ("Mixed declarations and code are not supported in cc65");
+                    while (CurTok.Tok != TOK_SEMI) {
+                        Declaration Decl;
+
+                        /* Parse one declaration */
+                        ParseDecl (&Spec, &Decl, DM_ACCEPT_IDENT);
+                        if (CurTok.Tok == TOK_ASSIGN) {
+                            NextToken ();
+                            ParseInit (Decl.Type);
+                        }
+                        if (CurTok.Tok == TOK_COMMA) {
+                            NextToken ();
+                        } else {
+                            break;
+                        }
+                    }
+                } else {
+                    Error ("Expression expected");
+                    NextToken ();
+                }
+            }
             ED_MakeConstAbsInt (E, 1);
             break;
     }
@@ -1201,7 +1278,6 @@ static void StructRef (ExprDesc* Expr)
 /* Process struct/union field after . or ->. */
 {
     ident Ident;
-    SymEntry* Field;
     Type* FinalType;
     TypeCode Q;
 
@@ -1217,9 +1293,9 @@ static void StructRef (ExprDesc* Expr)
     /* Get the symbol table entry and check for a struct/union field */
     strcpy (Ident, CurTok.Ident);
     NextToken ();
-    Field = FindStructField (Expr->Type, Ident);
-    if (Field == 0) {
-        Error ("No field named '%s' found in %s", Ident, GetBasicTypeName (Expr->Type));
+    const SymEntry Field = FindStructField (Expr->Type, Ident);
+    if (Field.Type == 0) {
+        Error ("No field named '%s' found in '%s'", Ident, GetFullTypeName (Expr->Type));
         /* Make the expression an integer at address zero */
         ED_MakeConstAbs (Expr, 0, type_int);
         return;
@@ -1258,16 +1334,19 @@ static void StructRef (ExprDesc* Expr)
         LoadExpr (CF_NONE, Expr);
     }
 
+    /* Clear the tested flag set during loading */
+    ED_MarkAsUntested (Expr);
+
     /* The type is the field type plus any qualifiers from the struct/union */
     if (IsClassStruct (Expr->Type)) {
         Q = GetQualifier (Expr->Type);
     } else {
         Q = GetQualifier (Indirect (Expr->Type));
     }
-    if (GetQualifier (Field->Type) == (GetQualifier (Field->Type) | Q)) {
-        FinalType = Field->Type;
+    if (GetQualifier (Field.Type) == (GetQualifier (Field.Type) | Q)) {
+        FinalType = Field.Type;
     } else {
-        FinalType = TypeDup (Field->Type);
+        FinalType = TypeDup (Field.Type);
         FinalType->C |= Q;
     }
 
@@ -1278,10 +1357,10 @@ static void StructRef (ExprDesc* Expr)
 
         /* Get the size of the type */
         unsigned StructSize = SizeOf (Expr->Type);
-        unsigned FieldSize  = SizeOf (Field->Type);
+        unsigned FieldSize  = SizeOf (Field.Type);
 
         /* Safety check */
-        CHECK (Field->V.Offs + FieldSize <= StructSize);
+        CHECK (Field.V.Offs + FieldSize <= StructSize);
 
         /* The type of the operation depends on the type of the struct/union */
         switch (StructSize) {
@@ -1297,23 +1376,23 @@ static void StructRef (ExprDesc* Expr)
                 Flags = CF_LONG | CF_UNSIGNED | CF_CONST;
                 break;
             default:
-                Internal ("Invalid %s size: %u", GetBasicTypeName (Expr->Type), StructSize);
+                Internal ("Invalid '%s' size: %u", GetFullTypeName (Expr->Type), StructSize);
                 break;
         }
 
         /* Generate a shift to get the field in the proper position in the
         ** primary. For bit fields, mask the value.
         */
-        BitOffs = Field->V.Offs * CHAR_BITS;
-        if (SymIsBitField (Field)) {
-            BitOffs += Field->V.B.BitOffs;
+        BitOffs = Field.V.Offs * CHAR_BITS;
+        if (SymIsBitField (&Field)) {
+            BitOffs += Field.V.B.BitOffs;
             g_asr (Flags, BitOffs);
             /* Mask the value. This is unnecessary if the shift executed above
             ** moved only zeroes into the value.
             */
-            if (BitOffs + Field->V.B.BitWidth != FieldSize * CHAR_BITS) {
+            if (BitOffs + Field.V.B.BitWidth != FieldSize * CHAR_BITS) {
                 g_and (CF_INT | CF_UNSIGNED | CF_CONST,
-                       (0x0001U << Field->V.B.BitWidth) - 1U);
+                       (0x0001U << Field.V.B.BitWidth) - 1U);
             }
         } else {
             g_asr (Flags, BitOffs);
@@ -1325,7 +1404,7 @@ static void StructRef (ExprDesc* Expr)
     } else {
 
         /* Set the struct/union field offset */
-        Expr->IVal += Field->V.Offs;
+        Expr->IVal += Field.V.Offs;
 
         /* Use the new type */
         Expr->Type = FinalType;
@@ -1341,8 +1420,8 @@ static void StructRef (ExprDesc* Expr)
         }
 
         /* Make the expression a bit field if necessary */
-        if (SymIsBitField (Field)) {
-            ED_MakeBitField (Expr, Field->V.B.BitOffs, Field->V.B.BitWidth);
+        if (SymIsBitField (&Field)) {
+            ED_MakeBitField (Expr, Field.V.B.BitOffs, Field.V.B.BitWidth);
         }
     }
 
@@ -1891,7 +1970,7 @@ void hie10 (ExprDesc* Expr)
             if (TypeSpecAhead ()) {
                 Type T[MAXTYPELEN];
                 NextToken ();
-                Size = CheckedSizeOf (ParseType (T));
+                Size = ExprCheckedSizeOf (ParseType (T));
                 ConsumeRParen ();
             } else {
                 /* Remember the output queue pointer */
@@ -1909,7 +1988,7 @@ void hie10 (ExprDesc* Expr)
                         ReleaseLiteral (Expr->LVal);
                     }
                     /* Calculate the size */
-                    Size = CheckedSizeOf (Expr->Type);
+                    Size = ExprCheckedSizeOf (Expr->Type);
                 }
                 /* Remove any generated code */
                 RemoveCode (&Mark);
@@ -2020,7 +2099,7 @@ static void hie_internal (const GenDesc* Ops,   /* List of generators */
             RemoveCode (&Mark1);
 
             /* Get the type of the result */
-            Expr->Type = promoteint (Expr->Type, Expr2.Type);
+            Expr->Type = ArithmeticConvert (Expr->Type, Expr2.Type);
 
             /* Handle the op differently for signed and unsigned types */
             if (IsSignSigned (Expr->Type)) {
@@ -2117,7 +2196,7 @@ static void hie_internal (const GenDesc* Ops,   /* List of generators */
 
             /* Determine the type of the operation result. */
             type |= g_typeadjust (ltype, rtype);
-            Expr->Type = promoteint (Expr->Type, Expr2.Type);
+            Expr->Type = ArithmeticConvert (Expr->Type, Expr2.Type);
 
             /* Generate code */
             Gen->Func (type, Expr->IVal);
@@ -2150,7 +2229,7 @@ static void hie_internal (const GenDesc* Ops,   /* List of generators */
 
             /* Determine the type of the operation result. */
             type |= g_typeadjust (ltype, rtype);
-            Expr->Type = promoteint (Expr->Type, Expr2.Type);
+            Expr->Type = ArithmeticConvert (Expr->Type, Expr2.Type);
 
             /* Generate code */
             Gen->Func (type, Expr2.IVal);
@@ -2224,16 +2303,21 @@ static void hie_compare (const GenDesc* Ops,    /* List of generators */
             LoadExpr (CF_NONE, &Expr2);
         }
 
+        /* Check if operands have allowed types for this operation */
+        if (!IsRelationType (Expr->Type) || !IsRelationType (Expr2.Type)) {
+            /* Output only one message even if both sides are wrong */
+            TypeCompatibilityDiagnostic (Expr->Type, Expr2.Type, 1,
+                "Comparing types '%s' with '%s' is invalid");
+            /* Avoid further errors */
+            ED_MakeConstAbsInt (Expr, 0);
+            ED_MakeConstAbsInt (&Expr2, 0);
+        }
+
         /* Some operations aren't allowed on function pointers */
         if ((Gen->Flags & GEN_NOFUNC) != 0) {
-            /* Output only one message even if both sides are wrong */
-            if (IsTypeFuncPtr (Expr->Type)) {
-                Error ("Invalid left operand for relational operator");
-                /* Avoid further errors */
-                ED_MakeConstAbsInt (Expr, 0);
-                ED_MakeConstAbsInt (&Expr2, 0);
-            } else if (IsTypeFuncPtr (Expr2.Type)) {
-                Error ("Invalid right operand for relational operator");
+            if ((IsTypeFuncPtr (Expr->Type) || IsTypeFuncPtr (Expr2.Type))) {
+                /* Output only one message even if both sides are wrong */
+                Error ("Cannot use function pointers in this relation operation");
                 /* Avoid further errors */
                 ED_MakeConstAbsInt (Expr, 0);
                 ED_MakeConstAbsInt (&Expr2, 0);
@@ -2242,8 +2326,14 @@ static void hie_compare (const GenDesc* Ops,    /* List of generators */
 
         /* Make sure, the types are compatible */
         if (IsClassInt (Expr->Type)) {
-            if (!IsClassInt (Expr2.Type) && !(IsClassPtr(Expr2.Type) && ED_IsNullPtr(Expr))) {
-                Error ("Incompatible types");
+            if (!IsClassInt (Expr2.Type) && !ED_IsNullPtr (Expr)) {
+                if (IsClassPtr (Expr2.Type)) {
+                    TypeCompatibilityDiagnostic (Expr->Type, PtrConversion (Expr2.Type), 0,
+                        "Comparing integer '%s' with pointer '%s'");
+                } else {
+                    TypeCompatibilityDiagnostic (Expr->Type, Expr2.Type, 1,
+                        "Comparing types '%s' with '%s' is invalid");
+                }
             }
         } else if (IsClassPtr (Expr->Type)) {
             if (IsClassPtr (Expr2.Type)) {
@@ -2254,10 +2344,17 @@ static void hie_compare (const GenDesc* Ops,    /* List of generators */
                 Type* right = Indirect (Expr2.Type);
                 if (TypeCmp (left, right) < TC_QUAL_DIFF && left->C != T_VOID && right->C != T_VOID) {
                     /* Incompatible pointers */
-                    Error ("Incompatible types");
+                    TypeCompatibilityDiagnostic (PtrConversion (Expr->Type), PtrConversion (Expr2.Type), 0,
+                        "Incompatible pointer types comparing '%s' with '%s'");
                 }
             } else if (!ED_IsNullPtr (&Expr2)) {
-                Error ("Incompatible types");
+                if (IsClassInt (Expr2.Type)) {
+                    TypeCompatibilityDiagnostic (PtrConversion (Expr->Type), Expr2.Type, 0,
+                        "Comparing pointer type '%s' with integer type '%s'");
+                } else {
+                    TypeCompatibilityDiagnostic (Expr->Type, Expr2.Type, 1,
+                        "Comparing types '%s' with '%s' is invalid");
+                }
             }
         }
 
@@ -3291,7 +3388,7 @@ static void hieQuest (ExprDesc* Expr)
 
 
             /* Get common type */
-            ResultType = promoteint (Expr2.Type, Expr3.Type);
+            ResultType = ArithmeticConvert (Expr2.Type, Expr3.Type);
 
             /* Convert the third expression to this type if needed */
             TypeConversion (&Expr3, ResultType);
@@ -3325,7 +3422,8 @@ static void hieQuest (ExprDesc* Expr)
             /* Result type is void */
             ResultType = Expr3.Type;
         } else {
-            Error ("Incompatible types");
+            TypeCompatibilityDiagnostic (Expr2.Type, Expr3.Type, 1,
+                "Incompatible types in ternary '%s' with '%s'");
             ResultType = Expr2.Type;            /* Doesn't matter here */
         }
 
@@ -3361,7 +3459,7 @@ static void opeq (const GenDesc* Gen, ExprDesc* Expr, const char* Op)
 
     /* There must be an integer or pointer on the left side */
     if (!IsClassInt (Expr->Type) && !IsTypePtr (Expr->Type)) {
-        Error ("Invalid left operand type");
+        Error ("Invalid left operand for binary operator '%s'", Op);
         /* Continue. Wrong code will be generated, but the compiler won't
         ** break, so this is the best error recovery.
         */
@@ -3485,7 +3583,7 @@ static void addsubeq (const GenDesc* Gen, ExprDesc *Expr, const char* Op)
 
     /* There must be an integer or pointer on the left side */
     if (!IsClassInt (Expr->Type) && !IsTypePtr (Expr->Type)) {
-        Error ("Invalid left operand type");
+        Error ("Invalid left operand for binary operator '%s'", Op);
         /* Continue. Wrong code will be generated, but the compiler won't
         ** break, so this is the best error recovery.
         */

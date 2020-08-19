@@ -50,6 +50,7 @@
 #include "locals.h"
 #include "stackptr.h"
 #include "standard.h"
+#include "staticassert.h"
 #include "symtab.h"
 #include "typeconv.h"
 #include "input.h"
@@ -425,13 +426,24 @@ static void ParseOneDecl (const DeclSpec* Spec)
     /* Read the declaration */
     ParseDecl (Spec, &Decl, DM_NEED_IDENT);
 
-    /* Set the correct storage class for functions */
+    /* Check if there are any non-extern storage classes set for function
+    ** declarations. Function can only be declared inside functions with the
+    ** 'extern' storage class specifier or no storage class specifier at all.
+    */
     if ((Decl.StorageClass & SC_FUNC) == SC_FUNC) {
-        /* Function prototypes are always external */
-        if ((Decl.StorageClass & SC_EXTERN) == 0) {
-            Warning ("Function must be extern");
+
+        /* Check if there are explicitly specified non-external storage classes */
+        if ((Spec->Flags & DS_DEF_STORAGE) != DS_DEF_STORAGE    &&
+            (Decl.StorageClass & SC_EXTERN) == 0                &&
+            (Decl.StorageClass & SC_STORAGEMASK) != 0) {
+            Error ("Illegal storage class on function");
         }
-        Decl.StorageClass |= SC_EXTERN;
+
+        /* The default storage class could be wrong. Just clear them */
+        Decl.StorageClass &= ~SC_STORAGEMASK;
+
+        /* This is always a declaration */
+        Decl.StorageClass |= SC_DECL;
     }
 
     /* If we don't have a name, this was flagged as an error earlier.
@@ -442,13 +454,15 @@ static void ParseOneDecl (const DeclSpec* Spec)
     }
 
     /* If the symbol is not marked as external, it will be defined now */
-    if ((Decl.StorageClass & SC_EXTERN) == 0) {
+    if ((Decl.StorageClass & SC_FICTITIOUS) == 0 &&
+        (Decl.StorageClass & SC_DECL) == 0  &&
+        (Decl.StorageClass & SC_EXTERN) == 0) {
         Decl.StorageClass |= SC_DEF;
     }
 
     /* Handle anything that needs storage (no functions, no typdefs) */
-    if ((Decl.StorageClass & SC_FUNC) != SC_FUNC &&
-         (Decl.StorageClass & SC_TYPEMASK) != SC_TYPEDEF) {
+    if ((Decl.StorageClass & SC_DEF) == SC_DEF &&
+        (Decl.StorageClass & SC_TYPEMASK) != SC_TYPEDEF) {
 
         /* If we have a register variable, try to allocate a register and
         ** convert the declaration to "auto" if this is not possible.
@@ -467,13 +481,6 @@ static void ParseOneDecl (const DeclSpec* Spec)
         } else if ((Decl.StorageClass & SC_AUTO) == SC_AUTO) {
             /* Auto variable */
             ParseAutoDecl (&Decl);
-        } else if ((Decl.StorageClass & SC_EXTERN) == SC_EXTERN) {
-            /* External identifier - may not get initialized */
-            if (CurTok.Tok == TOK_ASSIGN) {
-                Error ("Cannot initialize externals");
-            }
-            /* Add the external symbol to the symbol table */
-            AddLocalSym (Decl.Ident, Decl.Type, Decl.StorageClass, 0);
         } else if ((Decl.StorageClass & SC_STATIC) == SC_STATIC) {
             /* Static variable */
             ParseStaticDecl (&Decl);
@@ -483,8 +490,24 @@ static void ParseOneDecl (const DeclSpec* Spec)
 
     } else {
 
-        /* Add the symbol to the symbol table */
-        AddLocalSym (Decl.Ident, Decl.Type, Decl.StorageClass, 0);
+        if ((Decl.StorageClass & SC_EXTERN) == SC_EXTERN) {
+            /* External identifier - may not get initialized */
+            if (CurTok.Tok == TOK_ASSIGN) {
+                Error ("Cannot initialize extern variable '%s'", Decl.Ident);
+                /* Avoid excess errors */
+                NextToken ();
+                ParseInit (Decl.Type);
+            }
+        }
+
+        if ((Decl.StorageClass & SC_EXTERN) == SC_EXTERN ||
+            (Decl.StorageClass & SC_FUNC) == SC_FUNC) {
+            /* Add the global symbol to the local symbol table */
+            AddGlobalSym (Decl.Ident, Decl.Type, Decl.StorageClass);
+        } else {
+            /* Add the local symbol to the local symbol table */
+            AddLocalSym (Decl.Ident, Decl.Type, Decl.StorageClass, 0);
+        }
 
     }
 }
@@ -511,6 +534,13 @@ void DeclareLocals (void)
         ** declarations.
         */
         DeclSpec Spec;
+
+        /* Check for a _Static_assert */
+        if (CurTok.Tok == TOK_STATIC_ASSERT) {
+            ParseStaticAssert ();
+            continue;
+        }
+
         ParseDeclSpec (&Spec, SC_AUTO, T_INT);
         if ((Spec.Flags & DS_DEF_STORAGE) != 0 &&       /* No storage spec */
             (Spec.Flags & DS_DEF_TYPE) != 0    &&       /* No type given */
