@@ -457,6 +457,37 @@ static unsigned ParseOneStorageClass (void)
 
 
 
+static void CheckArrayElementType (Type* DataType)
+/* Check if data type consists of arrays of incomplete element types */
+{
+    Type* T = DataType;
+
+    while (T->C != T_END) {
+        if (IsTypeArray (T)) {
+            ++T;
+            if (IsIncompleteESUType (T)) {
+                /* We cannot have an array of incomplete elements */
+                Error ("Array of incomplete element type '%s'", GetFullTypeName (T));
+            } else if (SizeOf (T) == 0) {
+                /* If the array is multi-dimensional, try to get the true
+                ** element type.
+                */
+                if (IsTypeArray (T)) {
+                    continue;
+                }
+                /* We could support certain 0-size element types as an extension */
+                if (!IsTypeVoid (T) || IS_Get (&Standard) != STD_CC65) {
+                    Error ("Array of 0-size element type '%s'", GetFullTypeName (T));
+                }
+            }
+        } else {
+            ++T;
+        }
+    }
+}
+
+
+
 static void ParseStorageClass (DeclSpec* D, unsigned DefStorage)
 /* Parse a storage class */
 {
@@ -484,7 +515,7 @@ static void ParseStorageClass (DeclSpec* D, unsigned DefStorage)
 
 
 
-static SymEntry* ESUForwardDecl (const char* Name, unsigned Flags)
+static SymEntry* ESUForwardDecl (const char* Name, unsigned Flags, unsigned* DSFlags)
 /* Handle an enum, struct or union forward decl */
 {
     /* Try to find an enum/struct/union with the given name. If there is none,
@@ -493,9 +524,9 @@ static SymEntry* ESUForwardDecl (const char* Name, unsigned Flags)
     SymEntry* Entry = FindTagSym (Name);
     if (Entry == 0) {
         if ((Flags & SC_ESUTYPEMASK) != SC_ENUM) {
-            Entry = AddStructSym (Name, Flags, 0, 0);
+            Entry = AddStructSym (Name, Flags, 0, 0, DSFlags);
         } else {
-            Entry = AddEnumSym (Name, Flags, 0, 0);
+            Entry = AddEnumSym (Name, Flags, 0, 0, DSFlags);
         }
     } else if ((Entry->Flags & SC_TYPEMASK) != (Flags & SC_ESUTYPEMASK)) {
         /* Already defined, but not the same type class */
@@ -544,7 +575,7 @@ static const Type* GetEnumeratorType (long Min, unsigned long Max, int Signed)
 
 
 
-static SymEntry* ParseEnumDecl (const char* Name)
+static SymEntry* ParseEnumDecl (const char* Name, unsigned* DSFlags)
 /* Process an enum declaration */
 {
     SymTable*       FieldTab;
@@ -562,11 +593,11 @@ static SymEntry* ParseEnumDecl (const char* Name)
 
     if (CurTok.Tok != TOK_LCURLY) {
         /* Just a forward definition */
-        return ESUForwardDecl (Name, SC_ENUM);
+        return ESUForwardDecl (Name, SC_ENUM, DSFlags);
     }
 
     /* Add a forward declaration for the enum tag in the current lexical level */
-    AddEnumSym (Name, 0, 0, 0);
+    AddEnumSym (Name, 0, 0, 0, DSFlags);
 
     /* Skip the opening curly brace */
     NextToken ();
@@ -709,7 +740,7 @@ static SymEntry* ParseEnumDecl (const char* Name)
         Flags |= SC_FICTITIOUS;
     }
 
-    return AddEnumSym (Name, Flags, MemberType, FieldTab);
+    return AddEnumSym (Name, Flags, MemberType, FieldTab, DSFlags);
 }
 
 
@@ -839,7 +870,7 @@ static unsigned AliasAnonStructFields (const Declaration* Decl, SymEntry* Anon)
 
 
 
-static SymEntry* ParseUnionDecl (const char* Name)
+static SymEntry* ParseUnionDecl (const char* Name, unsigned* DSFlags)
 /* Parse a union declaration. */
 {
 
@@ -855,11 +886,11 @@ static SymEntry* ParseUnionDecl (const char* Name)
 
     if (CurTok.Tok != TOK_LCURLY) {
         /* Just a forward declaration */
-        return ESUForwardDecl (Name, SC_UNION);
+        return ESUForwardDecl (Name, SC_UNION, DSFlags);
     }
 
     /* Add a forward declaration for the union tag in the current lexical level */
-    UnionTagEntry = AddStructSym (Name, SC_UNION, 0, 0);
+    UnionTagEntry = AddStructSym (Name, SC_UNION, 0, 0, DSFlags);
 
     UnionTagEntry->V.S.ACount = 0;
 
@@ -911,8 +942,15 @@ static SymEntry* ParseUnionDecl (const char* Name)
                 }
             }
 
+            /* Check for incomplete type */
+            if (IsIncompleteESUType (Decl.Type)) {
+                Error ("Field '%s' has incomplete type '%s'",
+                       Decl.Ident,
+                       GetFullTypeName (Decl.Type));
+            }
+
             /* Handle sizes */
-            FieldSize = CheckedSizeOf (Decl.Type);
+            FieldSize = SizeOf (Decl.Type);
             if (FieldSize > UnionSize) {
                 UnionSize = FieldSize;
             }
@@ -925,12 +963,19 @@ static SymEntry* ParseUnionDecl (const char* Name)
                 AddBitField (Decl.Ident, Decl.Type, 0, 0, FieldWidth,
                              SignednessSpecified);
             } else {
+                Entry = AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, 0);
                 if (IsAnonName (Decl.Ident)) {
-                    Entry = AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, 0);
                     Entry->V.A.ANumber = UnionTagEntry->V.S.ACount++;
                     AliasAnonStructFields (&Decl, Entry);
-                } else {
-                    AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, 0);
+                }
+
+                /* Check if the field itself has a flexible array member */
+                if (IsClassStruct (Decl.Type)) {
+                    SymEntry* Sym = GetSymType (Decl.Type);
+                    if (Sym && SymHasFlexibleArrayMember (Sym)) {
+                        Entry->Flags |= SC_HAVEFAM;
+                        Flags        |= SC_HAVEFAM;
+                    }
                 }
             }
 
@@ -949,23 +994,23 @@ NextMember: if (CurTok.Tok != TOK_COMMA) {
     FieldTab = GetSymTab ();
     LeaveStructLevel ();
 
-    /* Empty union is not supported now */
-    if (UnionSize == 0) {
-        Error ("Empty union type '%s' is not supported", Name);
-    }
-
     /* Return a fictitious symbol if errors occurred during parsing */
     if (PrevErrorCount != ErrorCount) {
         Flags |= SC_FICTITIOUS;
     }
 
+    /* Empty union is not supported now */
+    if (UnionSize == 0) {
+        Error ("Empty union type '%s' is not supported", Name);
+    }
+
     /* Make a real entry from the forward decl and return it */
-    return AddStructSym (Name, SC_UNION | SC_DEF | Flags, UnionSize, FieldTab);
+    return AddStructSym (Name, SC_UNION | SC_DEF | Flags, UnionSize, FieldTab, DSFlags);
 }
 
 
 
-static SymEntry* ParseStructDecl (const char* Name)
+static SymEntry* ParseStructDecl (const char* Name, unsigned* DSFlags)
 /* Parse a struct declaration. */
 {
 
@@ -982,11 +1027,11 @@ static SymEntry* ParseStructDecl (const char* Name)
 
     if (CurTok.Tok != TOK_LCURLY) {
         /* Just a forward declaration */
-        return ESUForwardDecl (Name, SC_STRUCT);
+        return ESUForwardDecl (Name, SC_STRUCT, DSFlags);
     }
 
     /* Add a forward declaration for the struct tag in the current lexical level */
-    StructTagEntry = AddStructSym (Name, SC_STRUCT, 0, 0);
+    StructTagEntry = AddStructSym (Name, SC_STRUCT, 0, 0, DSFlags);
 
     StructTagEntry->V.S.ACount = 0;
 
@@ -1069,6 +1114,8 @@ static SymEntry* ParseStructDecl (const char* Name)
                     Error ("Flexible array member cannot be first struct field");
                 }
                 FlexibleMember = 1;
+                Flags |= SC_HAVEFAM;
+
                 /* Assume zero for size calculations */
                 SetElementCount (Decl.Type, FLEXIBLE);
             }
@@ -1095,6 +1142,13 @@ static SymEntry* ParseStructDecl (const char* Name)
                 }
             }
 
+            /* Check for incomplete type */
+            if (IsIncompleteESUType (Decl.Type)) {
+                Error ("Field '%s' has incomplete type '%s'",
+                       Decl.Ident,
+                       GetFullTypeName (Decl.Type));
+            }
+
             /* Add a field entry to the table */
             if (FieldWidth > 0) {
                 /* Full bytes have already been added to the StructSize,
@@ -1111,15 +1165,23 @@ static SymEntry* ParseStructDecl (const char* Name)
                 StructSize += BitOffs / CHAR_BITS;
                 BitOffs %= CHAR_BITS;
             } else {
+                Entry = AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, StructSize);
                 if (IsAnonName (Decl.Ident)) {
-                    Entry = AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, StructSize);
                     Entry->V.A.ANumber = StructTagEntry->V.S.ACount++;
                     AliasAnonStructFields (&Decl, Entry);
-                } else {
-                    AddLocalSym (Decl.Ident, Decl.Type, SC_STRUCTFIELD, StructSize);
                 }
+
+                /* Check if the field itself has a flexible array member */
+                if (IsClassStruct (Decl.Type)) {
+                    SymEntry* Sym = GetSymType (Decl.Type);
+                    if (Sym && SymHasFlexibleArrayMember (Sym)) {
+                        Entry->Flags |= SC_HAVEFAM;
+                        Flags        |= SC_HAVEFAM;
+                    }
+                }
+
                 if (!FlexibleMember) {
-                    StructSize += CheckedSizeOf (Decl.Type);
+                    StructSize += SizeOf (Decl.Type);
                 }
             }
 
@@ -1146,18 +1208,18 @@ NextMember: if (CurTok.Tok != TOK_COMMA) {
     FieldTab = GetSymTab ();
     LeaveStructLevel ();
 
-    /* Empty struct is not supported now */
-    if (StructSize == 0) {
-        Error ("Empty struct type '%s' is not supported", Name);
-    }
-
     /* Return a fictitious symbol if errors occurred during parsing */
     if (PrevErrorCount != ErrorCount) {
         Flags |= SC_FICTITIOUS;
     }
 
+    /* Empty struct is not supported now */
+    if (StructSize == 0) {
+        Error ("Empty struct type '%s' is not supported", Name);
+    }
+
     /* Make a real entry from the forward decl and return it */
-    return AddStructSym (Name, SC_STRUCT | SC_DEF | Flags, StructSize, FieldTab);
+    return AddStructSym (Name, SC_STRUCT | SC_DEF | Flags, StructSize, FieldTab, DSFlags);
 }
 
 
@@ -1340,7 +1402,7 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers,
             /* Remember we have an extra type decl */
             D->Flags |= DS_EXTRA_TYPE;
             /* Declare the union in the current scope */
-            Entry = ParseUnionDecl (Ident);
+            Entry = ParseUnionDecl (Ident, &D->Flags);
             /* Encode the union entry into the type */
             D->Type[0].C = T_UNION;
             SetESUSymEntry (D->Type, Entry);
@@ -1359,7 +1421,7 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers,
             /* Remember we have an extra type decl */
             D->Flags |= DS_EXTRA_TYPE;
             /* Declare the struct in the current scope */
-            Entry = ParseStructDecl (Ident);
+            Entry = ParseStructDecl (Ident, &D->Flags);
             /* Encode the struct entry into the type */
             D->Type[0].C = T_STRUCT;
             SetESUSymEntry (D->Type, Entry);
@@ -1382,7 +1444,8 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers,
             /* Remember we have an extra type decl */
             D->Flags |= DS_EXTRA_TYPE;
             /* Parse the enum decl */
-            Entry = ParseEnumDecl (Ident);
+            Entry = ParseEnumDecl (Ident, &D->Flags);
+            /* Encode the enum entry into the type */
             D->Type[0].C |= T_ENUM;
             SetESUSymEntry (D->Type, Entry);
             D->Type[1].C = T_END;
@@ -1430,13 +1493,27 @@ static void ParseTypeSpec (DeclSpec* D, long Default, TypeCode Qualifiers,
 
 
 static Type* ParamTypeCvt (Type* T)
-/* If T is an array, convert it to a pointer else do nothing. Return the
-** resulting type.
+/* If T is an array or a function, convert it to a pointer else do nothing.
+** Return the resulting type.
 */
 {
+    Type* Tmp = 0;
+
     if (IsTypeArray (T)) {
-        T->C = T_PTR;
+        Tmp = ArrayToPtr (T);
+    } else if (IsTypeFunc (T)) {
+        Tmp = PointerTo (T);
     }
+    
+    if (Tmp != 0) {
+        /* Do several fixes on qualifiers */
+        FixQualifiers (Tmp);
+
+        /* Replace the type */
+        TypeCopy (T, Tmp);
+        TypeFree (Tmp);
+    }
+
     return T;
 }
 
@@ -1507,6 +1584,13 @@ static void ParseOldStyleParamList (FuncDesc* F)
 
             /* Read the parameter */
             ParseDecl (&Spec, &Decl, DM_NEED_IDENT);
+
+            /* Warn about new local type declaration */
+            if ((Spec.Flags & DS_NEW_TYPE_DECL) != 0) {
+                Warning ("'%s' will be invisible out of this function",
+                         GetFullTypeName (Spec.Type));
+            }
+
             if (Decl.Ident[0] != '\0') {
 
                 /* We have a name given. Search for the symbol */
@@ -1574,6 +1658,12 @@ static void ParseAnsiParamList (FuncDesc* F)
             Spec.StorageClass = SC_AUTO | SC_PARAM | SC_DEF;
         }
 
+        /* Warn about new local type declaration */
+        if ((Spec.Flags & DS_NEW_TYPE_DECL) != 0) {
+            Warning ("'%s' will be invisible out of this function",
+                     GetFullTypeName (Spec.Type));
+        }
+
         /* Allow parameters without a name, but remember if we had some to
         ** eventually print an error message later.
         */
@@ -1628,7 +1718,6 @@ static void ParseAnsiParamList (FuncDesc* F)
 static FuncDesc* ParseFuncDecl (void)
 /* Parse the argument list of a function. */
 {
-    unsigned Offs;
     SymEntry* Sym;
     SymEntry* WrappedCall;
     unsigned char WrappedCallData;
@@ -1675,23 +1764,11 @@ static FuncDesc* ParseFuncDecl (void)
     */
     F->LastParam = GetSymTab()->SymTail;
 
-    /* Assign offsets. If the function has a variable parameter list,
-    ** there's one additional byte (the arg size).
+    /* It is allowed to use incomplete types in function prototypes, so we
+    ** won't always get to know the parameter sizes here and may do that later.
     */
-    Offs = (F->Flags & FD_VARIADIC)? 1 : 0;
-    Sym = F->LastParam;
-    while (Sym) {
-        unsigned Size = CheckedSizeOf (Sym->Type);
-        if (SymIsRegVar (Sym)) {
-            Sym->V.R.SaveOffs = Offs;
-        } else {
-            Sym->V.Offs = Offs;
-        }
-        Offs += Size;
-        F->ParamSize += Size;
-        Sym = Sym->PrevSym;
-    }
-
+    F->Flags |= FD_INCOMPLETE_PARAM;
+ 
     /* Leave the lexical level remembering the symbol tables */
     RememberFunctionLevel (F);
 
@@ -1908,6 +1985,9 @@ void ParseDecl (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
     /* Do several fixes on qualifiers */
     FixQualifiers (D->Type);
 
+    /* Check if the data type consists of any arrays of forbidden types */
+    CheckArrayElementType (D->Type);
+
     /* If we have a function, add a special storage class */
     if (IsTypeFunc (D->Type)) {
         D->StorageClass |= SC_FUNC;
@@ -1979,10 +2059,15 @@ void ParseDecl (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
                 Error ("Invalid size in declaration (0x%06X)", Size);
             }
         }
+    }
 
-        if (PrevErrorCount != ErrorCount) {
-            /* Don't give storage if the declaration is not parsed correctly */
-            D->StorageClass |= SC_DECL | SC_FICTITIOUS;
+    if (PrevErrorCount != ErrorCount) {
+        /* Make the declaration fictitious if is is not parsed correctly */
+        D->StorageClass |= SC_DECL | SC_FICTITIOUS;
+
+        if (Mode == DM_NEED_IDENT && D->Ident[0] == '\0') {
+            /* Use a fictitious name for the identifier if it is missing */
+            AnonName (D->Ident, "global");
         }
     }
 }
@@ -2228,7 +2313,7 @@ static unsigned ParseArrayInit (Type* T, int* Braces, int AllowFlexibleMembers)
 
     /* Get the array data */
     Type* ElementType    = GetElementType (T);
-    unsigned ElementSize = CheckedSizeOf (ElementType);
+    unsigned ElementSize = SizeOf (ElementType);
     long ElementCount    = GetElementCount (T);
 
     /* Special handling for a character array initialized by a literal */
@@ -2308,11 +2393,17 @@ static unsigned ParseArrayInit (Type* T, int* Braces, int AllowFlexibleMembers)
         /* Number of elements determined by initializer */
         SetElementCount (T, Count);
         ElementCount = Count;
-    } else if (ElementCount == FLEXIBLE && AllowFlexibleMembers) {
-        /* In non ANSI mode, allow initialization of flexible array
-        ** members.
-        */
-        ElementCount = Count;
+    } else if (ElementCount == FLEXIBLE) {
+        if (AllowFlexibleMembers) {
+            /* In non ANSI mode, allow initialization of flexible array
+            ** members.
+            */
+            ElementCount = Count;
+        } else {
+            /* Forbid */
+            Error ("Initializing flexible array member is forbidden");
+            ElementCount = Count;
+        }
     } else if (Count < ElementCount) {
         g_zerobytes ((ElementCount - Count) * ElementSize);
     } else if (Count > ElementCount && HasCurly) {

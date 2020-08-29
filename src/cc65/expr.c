@@ -346,6 +346,9 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
     int       FrameOffs   = 0;  /* Offset into parameter frame */
     int       Ellipsis    = 0;  /* Function is variadic */
 
+    /* Make sure the size of all parameters are known */
+    int ParamComplete = F_CheckParamList (Func, 1);
+
     /* As an optimization, we may allocate the complete parameter frame at
     ** once instead of pushing into each parameter as it comes. We may do that,
     ** if...
@@ -359,7 +362,7 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
     ** (instead of pushing) is enabled.
     **
     */
-    if (IS_Get (&CodeSizeFactor) >= 200) {
+    if (ParamComplete && IS_Get (&CodeSizeFactor) >= 200) {
 
         /* Calculate the number and size of the parameters */
         FrameParams = Func->ParamCount;
@@ -424,65 +427,68 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall)
         /* Evaluate the argument expression */
         hie1 (&Expr);
 
-        /* If we don't have a prototype, accept anything; otherwise, convert
-        ** the actual argument to the parameter type needed.
-        */
-        Flags = CF_NONE;
-        if (!Ellipsis) {
-
-            /* Convert the argument to the parameter type if needed */
-            TypeConversion (&Expr, Param->Type);
-
-            /* If we have a prototype, chars may be pushed as chars */
-            Flags |= CF_FORCECHAR;
-
-        } else {
-
-            /* No prototype available. Convert array to "pointer to first
-            ** element", and function to "pointer to function".
+        /* Skip to the next parameter if there are any incomplete types */
+        if (ParamComplete) {
+            /* If we don't have an argument spec., accept anything; otherwise,
+            ** convert the actual argument to the type needed.
             */
-            Expr.Type = PtrConversion (Expr.Type);
+            Flags = CF_NONE;
+            if (!Ellipsis) {
 
-        }
+                /* Convert the argument to the parameter type if needed */
+                TypeConversion (&Expr, Param->Type);
 
-        /* Handle struct/union specially */
-        if (IsClassStruct (Expr.Type)) {
-            /* Use the replacement type */
-            Flags |= TypeOf (GetStructReplacementType (Expr.Type));
-        } else {
-            /* Use the type of the argument for the push */
-            Flags |= TypeOf (Expr.Type);
-        }
+                /* If we have a prototype, chars may be pushed as chars */
+                Flags |= CF_FORCECHAR;
 
-        /* Load the value into the primary if it is not already there */
-        LoadExpr (Flags, &Expr);
-
-        /* If this is a fastcall function, don't push the last argument */
-        if ((CurTok.Tok == TOK_COMMA && NextTok.Tok != TOK_RPAREN) || !IsFastcall) {
-            unsigned ArgSize = sizeofarg (Flags);
-
-            if (FrameSize > 0) {
-                /* We have the space already allocated, store in the frame.
-                ** Because of invalid type conversions (that have produced an
-                ** error before), we can end up here with a non-aligned stack
-                ** frame. Since no output will be generated anyway, handle
-                ** these cases gracefully instead of doing a CHECK.
-                */
-                if (FrameSize >= ArgSize) {
-                    FrameSize -= ArgSize;
-                } else {
-                    FrameSize = 0;
-                }
-                FrameOffs -= ArgSize;
-                /* Store */
-                g_putlocal (Flags | CF_NOKEEP, FrameOffs, Expr.IVal);
             } else {
-                /* Push the argument */
-                g_push (Flags, Expr.IVal);
+
+                /* No prototype available. Convert array to "pointer to first
+                ** element", and function to "pointer to function".
+                */
+                Expr.Type = PtrConversion (Expr.Type);
+
             }
 
-            /* Calculate total parameter size */
-            PushedSize += ArgSize;
+            /* Handle struct/union specially */
+            if (IsClassStruct (Expr.Type)) {
+                /* Use the replacement type */
+                Flags |= TypeOf (GetStructReplacementType (Expr.Type));
+            } else {
+                /* Use the type of the argument for the push */
+                Flags |= TypeOf (Expr.Type);
+            }
+
+            /* Load the value into the primary if it is not already there */
+            LoadExpr (Flags, &Expr);
+
+            /* If this is a fastcall function, don't push the last argument */
+            if ((CurTok.Tok == TOK_COMMA && NextTok.Tok != TOK_RPAREN) || !IsFastcall) {
+                unsigned ArgSize = sizeofarg (Flags);
+
+                if (FrameSize > 0) {
+                    /* We have the space already allocated, store in the frame.
+                    ** Because of invalid type conversions (that have produced an
+                    ** error before), we can end up here with a non-aligned stack
+                    ** frame. Since no output will be generated anyway, handle
+                    ** these cases gracefully instead of doing a CHECK.
+                    */
+                    if (FrameSize >= ArgSize) {
+                        FrameSize -= ArgSize;
+                    } else {
+                        FrameSize = 0;
+                    }
+                    FrameOffs -= ArgSize;
+                    /* Store */
+                    g_putlocal (Flags | CF_NOKEEP, FrameOffs, Expr.IVal);
+                } else {
+                    /* Push the argument */
+                    g_push (Flags, Expr.IVal);
+                }
+
+                /* Calculate total parameter size */
+                PushedSize += ArgSize;
+            }
         }
 
         /* Check for end of argument list */
@@ -557,7 +563,7 @@ static void FunctionCall (ExprDesc* Expr)
         ** For fastcall functions we do also need to place a copy of the
         ** pointer on stack, since we cannot use a/x.
         */
-        PtrOnStack = IsFastcall || !ED_IsConst (Expr);
+        PtrOnStack = IsFastcall || !ED_IsConstAddr (Expr);
         if (PtrOnStack) {
 
             /* Not a global or local variable, or a fastcall function. Load
@@ -1083,12 +1089,13 @@ static void ArrayRef (ExprDesc* Expr)
         ED_FinalizeRValLoad (&Subscript);
     }
 
-    /* Check if the subscript is constant absolute value */
+    /* Make the address of the array element from the base and subscript */
     if (ED_IsConstAbs (&Subscript) && ED_CodeRangeIsEmpty (&Subscript)) {
 
-        /* The array subscript is a numeric constant. If we had pushed the
-        ** array base address onto the stack before, we can remove this value,
-        ** since we can generate expression+offset.
+        /* The array subscript is a constant. Since we can have the element
+        ** address directly as base+offset, we can remove the array address
+        ** push onto the stack before if loading subscript doesn't tamper that
+        ** address in the primary. 
         */
         if (!ConstBaseAddr) {
             RemoveCode (&Mark2);
@@ -1127,7 +1134,7 @@ static void ArrayRef (ExprDesc* Expr)
 
         } else {
 
-            /* Scale the rhs value according to the element type */
+            /* Scale the lhs value according to the element type */
             g_scale (TypeOf (tptr1), CheckedSizeOf (ElementType));
 
             /* Add the subscript. Since arrays are indexed by integers,
@@ -1247,13 +1254,13 @@ static void ArrayRef (ExprDesc* Expr)
             }
         }
 
-        /* The pointer is an rvalue in the primary */
+        /* The address of the element is an rvalue in the primary */
         ED_FinalizeRValLoad (Expr);
 
     }
 
-    /* The result is usually an lvalue expression of element type referenced in
-    ** the primary, unless it's an array which is a rare case. We can just
+    /* The final result is usually an lvalue expression of element type
+    ** referenced in the primary, unless it is once again an array. We can just
     ** assume the usual case first, and change it later if necessary.
     */
     ED_IndExpr (Expr);
@@ -1855,8 +1862,8 @@ static void UnaryOp (ExprDesc* Expr)
         /* Value is not constant */
         LoadExpr (CF_NONE, Expr);
 
-        /* Get the type of the expression */
-        Flags = TypeOf (Expr->Type);
+        /* Adjust the type of the value */
+        Flags = g_typeadjust (TypeOf (Expr->Type), TypeOf (type_int) | CF_CONST);
 
         /* Handle the operation */
         switch (Tok) {
@@ -1869,6 +1876,9 @@ static void UnaryOp (ExprDesc* Expr)
         /* The result is an rvalue in the primary */
         ED_FinalizeRValLoad (Expr);
     }
+
+    /* Adjust the type of the expression */
+    Expr->Type = IntPromotion (Expr->Type);
 }
 
 
