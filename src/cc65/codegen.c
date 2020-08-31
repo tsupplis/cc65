@@ -107,11 +107,11 @@ static const char* GetLabelName (unsigned Flags, uintptr_t Label, long Offs)
             break;
 
         case CF_STATIC:
-            /* Static memory cell */
+            /* Local static memory cell */
             if (Offs) {
-                xsprintf (Buf, sizeof (Buf), "%s%+ld", LocalLabelName (Label), Offs);
+                xsprintf (Buf, sizeof (Buf), "%s%+ld", LocalDataLabelName (Label), Offs);
             } else {
-                xsprintf (Buf, sizeof (Buf), "%s", LocalLabelName (Label));
+                xsprintf (Buf, sizeof (Buf), "%s", LocalDataLabelName (Label));
             }
             break;
 
@@ -124,6 +124,16 @@ static const char* GetLabelName (unsigned Flags, uintptr_t Label, long Offs)
             }
             break;
 
+        case CF_LITERAL:
+            /* Literal */
+            /* Static memory cell */
+            if (Offs) {
+                xsprintf (Buf, sizeof (Buf), "%s%+ld", PooledLiteralLabelName (Label), Offs);
+            } else {
+                xsprintf (Buf, sizeof (Buf), "%s", PooledLiteralLabelName (Label));
+            }
+            break;
+
         case CF_ABSOLUTE:
             /* Absolute address */
             xsprintf (Buf, sizeof (Buf), "$%04X", (unsigned)((Label+Offs) & 0xFFFF));
@@ -132,6 +142,15 @@ static const char* GetLabelName (unsigned Flags, uintptr_t Label, long Offs)
         case CF_REGVAR:
             /* Variable in register bank */
             xsprintf (Buf, sizeof (Buf), "regbank+%u", (unsigned)((Label+Offs) & 0xFFFF));
+            break;
+
+        case CF_CODE:
+            /* Code label location */
+            if (Offs) {
+                xsprintf (Buf, sizeof (Buf), "%s%+ld", LocalLabelName (Label), Offs);
+            } else {
+                xsprintf (Buf, sizeof (Buf), "%s", LocalLabelName (Label));
+            }
             break;
 
         default:
@@ -350,25 +369,7 @@ void g_defcodelabel (unsigned label)
 void g_defdatalabel (unsigned label)
 /* Define a local data label */
 {
-    AddDataLine ("%s:", LocalLabelName (label));
-}
-
-
-
-void g_aliasdatalabel (unsigned label, unsigned baselabel, long offs)
-/* Define label as a local alias for baselabel+offs */
-{
-    /* We need an intermediate buffer here since LocalLabelName uses a
-    ** static buffer which changes with each call.
-    */
-    StrBuf L = AUTO_STRBUF_INITIALIZER;
-    SB_AppendStr (&L, LocalLabelName (label));
-    SB_Terminate (&L);
-    AddDataLine ("%s\t:=\t%s+%ld",
-                 SB_GetConstBuf (&L),
-                 LocalLabelName (baselabel),
-                 offs);
-    SB_Done (&L);
+    AddDataLine ("%s:", LocalDataLabelName (label));
 }
 
 
@@ -384,6 +385,33 @@ void g_defgloblabel (const char* Name)
 {
     /* Global labels are always data labels */
     AddDataLine ("_%s:", Name);
+}
+
+
+
+void g_defliterallabel (unsigned label)
+/* Define a literal data label */
+{
+    /* Literal labels are always data labels */
+    AddDataLine ("%s:", PooledLiteralLabelName (label));
+}
+
+
+
+void g_aliasliterallabel (unsigned label, unsigned baselabel, long offs)
+/* Define label as an alias for baselabel+offs */
+{
+    /* We need an intermediate buffer here since LocalLabelName uses a
+    ** static buffer which changes with each call.
+    */
+    StrBuf L = AUTO_STRBUF_INITIALIZER;
+    SB_AppendStr (&L, PooledLiteralLabelName (label));
+    SB_Terminate (&L);
+    AddDataLine ("%s\t:=\t%s+%ld",
+                 SB_GetConstBuf (&L),
+                 PooledLiteralLabelName (baselabel),
+                 offs);
+    SB_Done (&L);
 }
 
 
@@ -2364,7 +2392,7 @@ void g_call (unsigned Flags, const char* Label, unsigned ArgSize)
 void g_callind (unsigned Flags, unsigned ArgSize, int Offs)
 /* Call subroutine indirect */
 {
-    if ((Flags & CF_STACK) == 0) {
+    if ((Flags & CF_ADDRMASK) != CF_STACK) {
         /* Address is in a/x */
         if ((Flags & CF_FIXARGC) == 0) {
             /* Pass arg count */
@@ -2434,11 +2462,11 @@ void g_lateadjustSP (unsigned label)
 /* Adjust stack based on non-immediate data */
 {
     AddCodeLine ("pha");
-    AddCodeLine ("lda %s", LocalLabelName (label));
+    AddCodeLine ("lda %s", LocalDataLabelName (label));
     AddCodeLine ("clc");
     AddCodeLine ("adc sp");
     AddCodeLine ("sta sp");
-    AddCodeLine ("lda %s+1", LocalLabelName (label));
+    AddCodeLine ("lda %s+1", LocalDataLabelName (label));
     AddCodeLine ("adc sp+1");
     AddCodeLine ("sta sp+1");
     AddCodeLine ("pla");

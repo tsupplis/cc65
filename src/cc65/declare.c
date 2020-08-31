@@ -621,9 +621,8 @@ static SymEntry* ParseEnumDecl (const char* Name, unsigned* DSFlags)
         /* Check for an assigned value */
         if (CurTok.Tok == TOK_ASSIGN) {
 
-            ExprDesc Expr;
             NextToken ();
-            ConstAbsIntExpr (hie1, &Expr);
+            ExprDesc Expr = NoCodeConstAbsIntExpr (hie1);
             EnumVal       = Expr.IVal;
             MemberType    = Expr.Type;
             IsSigned      = IsSignSigned (MemberType);
@@ -750,8 +749,6 @@ static int ParseFieldWidth (Declaration* Decl)
 ** otherwise the width of the field.
 */
 {
-    ExprDesc Expr;
-
     if (CurTok.Tok != TOK_COLON) {
         /* No bit-field declaration */
         return -1;
@@ -775,7 +772,7 @@ static int ParseFieldWidth (Declaration* Decl)
 
     /* Read the width */
     NextToken ();
-    ConstAbsIntExpr (hie1, &Expr);
+    ExprDesc Expr = NoCodeConstAbsIntExpr (hie1);
 
     if (Expr.IVal < 0) {
         Error ("Negative width in bit-field");
@@ -942,8 +939,8 @@ static SymEntry* ParseUnionDecl (const char* Name, unsigned* DSFlags)
                 }
             }
 
-            /* Check for incomplete type */
-            if (IsIncompleteESUType (Decl.Type)) {
+            /* Check for incomplete types including 'void' */
+            if (IsClassIncomplete (Decl.Type)) {
                 Error ("Field '%s' has incomplete type '%s'",
                        Decl.Ident,
                        GetFullTypeName (Decl.Type));
@@ -1142,8 +1139,8 @@ static SymEntry* ParseStructDecl (const char* Name, unsigned* DSFlags)
                 }
             }
 
-            /* Check for incomplete type */
-            if (IsIncompleteESUType (Decl.Type)) {
+            /* Check for incomplete types including 'void' */
+            if (IsClassIncomplete (Decl.Type)) {
                 Error ("Field '%s' has incomplete type '%s'",
                        Decl.Ident,
                        GetFullTypeName (Decl.Type));
@@ -1894,8 +1891,7 @@ static void Declarator (const DeclSpec* Spec, Declaration* D, declmode_t Mode)
 
             /* Read the size if it is given */
             if (CurTok.Tok != TOK_RBRACK) {
-                ExprDesc Expr;
-                ConstAbsIntExpr (hie1, &Expr);
+                ExprDesc Expr = NoCodeConstAbsIntExpr (hie1);
                 if (Expr.IVal <= 0) {
                     if (D->Ident[0] != '\0') {
                         Error ("Size of array '%s' is invalid", D->Ident);
@@ -2189,9 +2185,13 @@ static void DefineData (ExprDesc* Expr)
             break;
 
         case E_LOC_STATIC:
-        case E_LOC_LITERAL:
-            /* Static variable or literal in the literal pool */
+            /* Static variable */
             g_defdata (CF_STATIC, Expr->Name, Expr->IVal);
+            break;
+
+        case E_LOC_LITERAL:
+            /* Literal in the literal pool */
+            g_defdata (CF_LITERAL, Expr->Name, Expr->IVal);
             break;
 
         case E_LOC_REGISTER:
@@ -2202,6 +2202,11 @@ static void DefineData (ExprDesc* Expr)
                 Error ("Cannot take the address of a register variable");
             }
             g_defdata (CF_REGVAR, Expr->Name, Expr->IVal);
+            break;
+
+        case E_LOC_CODE:
+            /* Code label location */
+            g_defdata (CF_CODE, Expr->Name, Expr->IVal);
             break;
 
         case E_LOC_STACK:
@@ -2240,7 +2245,7 @@ static void OutputBitFieldData (StructInitData* SI)
 
 
 
-static void ParseScalarInitInternal (Type* T, ExprDesc* ED)
+static ExprDesc ParseScalarInitInternal (Type* T)
 /* Parse initializaton for scalar data types. This function will not output the
 ** data but return it in ED.
 */
@@ -2256,11 +2261,13 @@ static void ParseScalarInitInternal (Type* T, ExprDesc* ED)
     }
 
     /* Get the expression and convert it to the target type */
-    ConstExpr (hie1, ED);
-    TypeConversion (ED, T);
+    ExprDesc ED = NoCodeConstExpr (hie1);
+    TypeConversion (&ED, T);
 
     /* Close eventually opening braces */
     ClosingCurlyBraces (BraceCount);
+
+    return ED;
 }
 
 
@@ -2268,10 +2275,8 @@ static void ParseScalarInitInternal (Type* T, ExprDesc* ED)
 static unsigned ParseScalarInit (Type* T)
 /* Parse initializaton for scalar data types. Return the number of data bytes. */
 {
-    ExprDesc ED;
-
     /* Parse initialization */
-    ParseScalarInitInternal (T, &ED);
+    ExprDesc ED = ParseScalarInitInternal (T);
 
     /* Output the data */
     DefineData (&ED);
@@ -2289,8 +2294,7 @@ static unsigned ParsePointerInit (Type* T)
     unsigned BraceCount = OpeningCurlyBraces (0);
 
     /* Expression */
-    ExprDesc ED;
-    ConstExpr (hie1, &ED);
+    ExprDesc ED = NoCodeConstExpr (hie1);
     TypeConversion (&ED, T);
 
     /* Output the data */
@@ -2387,6 +2391,11 @@ static unsigned ParseArrayInit (Type* T, int* Braces, int AllowFlexibleMembers)
             /* Closing curly braces */
             ConsumeRCurly ();
         }
+    }
+
+    /* Size of 'void' elements are determined after initialization */
+    if (ElementSize == 0) {
+        ElementSize = SizeOf (ElementType);
     }
 
     if (ElementCount == UNSPECIFIED) {
@@ -2511,6 +2520,7 @@ static unsigned ParseStructInit (Type* T, int* Braces, int AllowFlexibleMembers)
             ** handling.
             */
             ExprDesc ED;
+            ED_Init (&ED);
             unsigned Val;
             unsigned Shift;
 
@@ -2522,7 +2532,7 @@ static unsigned ParseStructInit (Type* T, int* Braces, int AllowFlexibleMembers)
                    SI.Offs         * CHAR_BITS + SI.ValBits);
 
             /* Read the data, check for a constant integer, do a range check */
-            ParseScalarInitInternal (Entry->Type, &ED);
+            ED = ParseScalarInitInternal (Entry->Type);
             if (!ED_IsConstAbsInt (&ED)) {
                 Error ("Constant initializer expected");
                 ED_MakeConstAbsInt (&ED, 1);
@@ -2632,7 +2642,6 @@ static unsigned ParseVoidInit (Type* T)
 ** Return the number of bytes initialized.
 */
 {
-    ExprDesc Expr;
     unsigned Size;
 
     /* Opening brace */
@@ -2641,7 +2650,7 @@ static unsigned ParseVoidInit (Type* T)
     /* Allow an arbitrary list of values */
     Size = 0;
     do {
-        ConstExpr (hie1, &Expr);
+        ExprDesc Expr = NoCodeConstExpr (hie1);
         switch (GetUnderlyingTypeCode (&Expr.Type[0])) {
 
             case T_SCHAR:
@@ -2695,7 +2704,11 @@ static unsigned ParseVoidInit (Type* T)
     ConsumeRCurly ();
 
     /* Number of bytes determined by initializer */
-    T->A.U = Size;
+    if (T->A.U != 0 && T->A.U != Size) {
+        Error ("'void' array initialized with elements of variant sizes");
+    } else {
+        T->A.U = Size;
+    }
 
     /* Return the number of bytes initialized */
     return Size;

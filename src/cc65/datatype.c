@@ -66,6 +66,7 @@ Type type_int[]         = { TYPE(T_INT),    TYPE(T_END) };
 Type type_uint[]        = { TYPE(T_UINT),   TYPE(T_END) };
 Type type_long[]        = { TYPE(T_LONG),   TYPE(T_END) };
 Type type_ulong[]       = { TYPE(T_ULONG),  TYPE(T_END) };
+Type type_bool[]        = { TYPE(T_INT),    TYPE(T_END) };
 Type type_void[]        = { TYPE(T_VOID),   TYPE(T_END) };
 Type type_size_t[]      = { TYPE(T_SIZE_T), TYPE(T_END) };
 Type type_float[]       = { TYPE(T_FLOAT),  TYPE(T_END) };
@@ -903,6 +904,7 @@ unsigned TypeOf (const Type* T)
             /* Address of ... */
             return CF_INT | CF_UNSIGNED;
 
+        case T_VOID:
         case T_ENUM:
             /* Incomplete enum type */
             Error ("Incomplete type '%s'", GetFullTypeName (T));
@@ -978,7 +980,7 @@ int IsClassIncomplete (const Type* T)
 /* Return true if this is an object type lacking size info */
 {
     if (IsTypeArray (T)) {
-        return GetElementCount (T) == UNSPECIFIED;
+        return GetElementCount (T) == UNSPECIFIED || IsClassIncomplete (T + 1);
     }
     return IsTypeVoid (T) || IsIncompleteESUType (T);
 }
@@ -1071,7 +1073,7 @@ int HasUnknownSize (const Type* T)
 /* Return true if this is an incomplete ESU type or an array of unknown size */
 {
     if (IsTypeArray (T)) {
-        return GetElementCount (T) == UNSPECIFIED;
+        return GetElementCount (T) == UNSPECIFIED || HasUnknownSize (T + 1);
     }
     return IsIncompleteESUType (T);
 }

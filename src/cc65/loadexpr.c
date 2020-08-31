@@ -64,9 +64,13 @@ static void LoadAddress (unsigned Flags, ExprDesc* Expr)
             break;
 
         case E_LOC_STATIC:
-        case E_LOC_LITERAL:
-            /* Static symbol or literal, load address */
+            /* Static symbol, load address */
             g_getimmed ((Flags | CF_STATIC) & ~CF_CONST, Expr->Name, Expr->IVal);
+            break;
+
+        case E_LOC_LITERAL:
+            /* Literal, load address */
+            g_getimmed ((Flags | CF_LITERAL) & ~CF_CONST, Expr->Name, Expr->IVal);
             break;
 
         case E_LOC_REGISTER:
@@ -77,6 +81,11 @@ static void LoadAddress (unsigned Flags, ExprDesc* Expr)
                 Error ("Cannot take the address of a register variable");
             }
             g_getimmed ((Flags | CF_REGVAR) & ~CF_CONST, Expr->Name, Expr->IVal);
+            break;
+
+        case E_LOC_CODE:
+            /* Code label, load address */
+            g_getimmed ((Flags | CF_CODE) & ~CF_CONST, Expr->Name, Expr->IVal);
             break;
 
         case E_LOC_STACK:
@@ -149,7 +158,7 @@ void LoadExpr (unsigned Flags, struct ExprDesc* Expr)
             Flags |= TypeOf (Expr->Type);
         }
 
-        if (ED_NeedsTest (Expr)) {
+        if (ED_YetToTest (Expr)) {
             /* If we're only testing, we do not need to promote char to int.
             ** CF_FORCECHAR does nothing if the type is not CF_CHAR.
             */
@@ -183,14 +192,23 @@ void LoadExpr (unsigned Flags, struct ExprDesc* Expr)
                 break;
 
             case E_LOC_STATIC:
-            case E_LOC_LITERAL:
-                /* Static variable or literal in the literal pool */
+                /* Static variable */
                 g_getstatic (Flags | CF_STATIC, Expr->Name, Expr->IVal);
+                break;
+
+            case E_LOC_LITERAL:
+                /* Literal in the literal pool */
+                g_getstatic (Flags | CF_LITERAL, Expr->Name, Expr->IVal);
                 break;
 
             case E_LOC_REGISTER:
                 /* Register variable */
                 g_getstatic (Flags | CF_REGVAR, Expr->Name, Expr->IVal);
+                break;
+
+            case E_LOC_CODE:
+                /* Code label location */
+                g_getstatic (Flags | CF_CODE, Expr->Name, Expr->IVal);
                 break;
 
             case E_LOC_STACK:
@@ -238,7 +256,7 @@ void LoadExpr (unsigned Flags, struct ExprDesc* Expr)
             */
             CHECK (Expr->BitOffs < CHAR_BITS);
 
-            if (ED_NeedsTest (Expr)) {
+            if (ED_YetToTest (Expr)) {
                 g_testbitfield (Flags, Expr->BitOffs, Expr->BitWidth);
             } else {
                 g_extractbitfield (Flags, BitFieldFullWidthFlags, IsSignSigned (Expr->Type),
@@ -256,7 +274,7 @@ void LoadExpr (unsigned Flags, struct ExprDesc* Expr)
         LoadAddress (Flags, Expr);
 
         /* Are we testing this value? */
-        if (ED_NeedsTest (Expr)) {
+        if (ED_YetToTest (Expr)) {
             /* Yes, force a test */
             g_test (Flags);
             ED_TestDone (Expr);

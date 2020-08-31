@@ -64,31 +64,31 @@
 
 
 static unsigned AllocLabel (void (*UseSeg) ())
-/* Switch to a segment, define a local label and return it */
+/* Switch to a segment, define a local data label and return it */
 {
-    unsigned Label;
+    unsigned DataLabel;
 
     /* Switch to the segment */
     UseSeg ();
 
     /* Define the variable label */
-    Label = GetLocalLabel ();
-    g_defdatalabel (Label);
+    DataLabel = GetLocalDataLabel ();
+    g_defdatalabel (DataLabel);
 
     /* Return the label */
-    return Label;
+    return DataLabel;
 }
 
 
 
-static void AllocStorage (unsigned Label, void (*UseSeg) (), unsigned Size)
-/* Reserve Size bytes of BSS storage prefixed by a local label. */
+static void AllocStorage (unsigned DataLabel, void (*UseSeg) (), unsigned Size)
+/* Reserve Size bytes of BSS storage prefixed by a local data label. */
 {
     /* Switch to the segment */
     UseSeg ();
 
     /* Define the variable label */
-    g_defdatalabel (Label);
+    g_defdatalabel (DataLabel);
 
     /* Reserve space for the data */
     g_res (Size);
@@ -122,8 +122,6 @@ static void ParseRegisterDecl (Declaration* Decl, int Reg)
     /* Check for an optional initialization */
     if (CurTok.Tok == TOK_ASSIGN) {
 
-        ExprDesc Expr;
-
         /* Skip the '=' */
         NextToken ();
 
@@ -151,6 +149,9 @@ static void ParseRegisterDecl (Declaration* Decl, int Reg)
             g_initregister (InitLabel, Reg, Size);
 
         } else {
+
+            ExprDesc Expr;
+            ED_Init (&Expr);
 
             /* Parse the expression */
             hie1 (&Expr);
@@ -207,8 +208,6 @@ static void ParseAutoDecl (Declaration* Decl)
         /* Check for an optional initialization */
         if (CurTok.Tok == TOK_ASSIGN) {
 
-            ExprDesc Expr;
-
             /* Skip the '=' */
             NextToken ();
 
@@ -245,6 +244,9 @@ static void ParseAutoDecl (Declaration* Decl)
                 g_initauto (InitLabel, Size);
 
             } else {
+
+                ExprDesc Expr;
+                ED_Init (&Expr);
 
                 /* Allocate previously reserved local space */
                 F_AllocLocalSpace (CurrentFunc);
@@ -299,15 +301,13 @@ static void ParseAutoDecl (Declaration* Decl)
         Decl->StorageClass = (Decl->StorageClass & ~SC_AUTO) | SC_STATIC;
 
         /* Generate a label, but don't define it */
-        DataLabel = GetLocalLabel ();
+        DataLabel = GetLocalDataLabel ();
 
         /* Add the symbol to the symbol table. */
         Sym = AddLocalSym (Decl->Ident, Decl->Type, Decl->StorageClass, DataLabel);
 
         /* Allow assignments */
         if (CurTok.Tok == TOK_ASSIGN) {
-
-            ExprDesc Expr;
 
             /* Skip the '=' */
             NextToken ();
@@ -331,6 +331,9 @@ static void ParseAutoDecl (Declaration* Decl)
                 g_initstatic (InitLabel, DataLabel, Size);
 
             } else {
+
+                ExprDesc Expr;
+                ED_Init (&Expr);
 
                 /* Allocate space for the variable */
                 AllocStorage (DataLabel, g_usebss, Size);
@@ -377,7 +380,7 @@ static void ParseStaticDecl (Declaration* Decl)
     unsigned Size;
 
     /* Generate a label, but don't define it */
-    unsigned DataLabel = GetLocalLabel ();
+    unsigned DataLabel = GetLocalDataLabel ();
 
     /* Add the symbol to the symbol table. */
     SymEntry* Sym = AddLocalSym (Decl->Ident, Decl->Type,
