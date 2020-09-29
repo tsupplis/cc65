@@ -33,6 +33,8 @@
 
 
 
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 
 /* common */
@@ -43,11 +45,13 @@
 #include "xsprintf.h"
 
 /* cc65 */
+#include "asmlabel.h"
 #include "codeent.h"
 #include "codeinfo.h"
+#include "codelab.h"
 #include "error.h"
 #include "global.h"
-#include "codelab.h"
+#include "ident.h"
 #include "opcodes.h"
 #include "output.h"
 #include "reginfo.h"
@@ -95,42 +99,11 @@ static char* GetArgCopy (const char* Arg)
 
 
 
-static int NumArg (const char* Arg, unsigned long* Num)
-/* If the given argument is numerical, convert it and return true. Otherwise
-** set Num to zero and return false.
-*/
+static void FreeParsedArg (char* ArgBase)
+/* Free a code entry parsed argument */
 {
-    char* End;
-    unsigned long Val;
-
-    /* Determine the base */
-    int Base = 10;
-    if (*Arg == '$') {
-        ++Arg;
-        Base = 16;
-    } else if (*Arg == '%') {
-        ++Arg;
-        Base = 2;
-    }
-
-    /* Convert the value. strtol is not exactly what we want here, but it's
-    ** cheap and may be replaced by something fancier later.
-    */
-    Val = strtoul (Arg, &End, Base);
-
-    /* Check if the conversion was successful */
-    if (*End != '\0') {
-
-        /* Could not convert */
-        *Num = 0;
-        return 0;
-
-    } else {
-
-        /* Conversion ok */
-        *Num = Val;
-        return 1;
-
+    if (ArgBase != 0 && ArgBase != EmptyArg) {
+        xfree (ArgBase);
     }
 }
 
@@ -356,6 +329,244 @@ static void SetUseChgInfo (CodeEntry* E, const OPCDesc* D)
 
 
 
+int ParseOpcArgStr (const char* Arg, unsigned short* ArgInfo, struct StrBuf* Name, long* Offset)
+/* Break the opcode argument string into a symbol name/label part plus an offset.
+** Both parts are optional, but if there are any characters in the string that
+** can't be parsed, it's an failure.
+** The caller is responsible for managing the StrBuf.
+** Return whether parsing succeeds or not.
+*/
+{
+    unsigned short  Flags = 0;
+    const char*     OffsetPart = 0;
+    const char*     NameEnd = 0;
+    int             Negative = 0;
+    int             Parentheses = 0;
+    unsigned long   NumVal = 0;
+    long long       AccOffset = 0;
+    char*           End;            /* Used for checking errors */
+
+    if (ArgInfo != 0) {
+        *ArgInfo = 0;
+    }
+    *Offset = 0;
+
+    /* A numeric address is treated as an unnamed address with the numeric part as the offset */
+    if (IsDigit (Arg[0]) || Arg[0] == '$') {
+        /* A call to a numeric address */
+        SB_Clear (Name);
+        SB_Terminate (Name);
+        OffsetPart = Arg;
+    } else {
+        /* <, >, ^ */
+        if (Arg[0] == '<') {
+            Flags |= AIF_LOBYTE;
+        } else if (Arg[0] == '>') {
+            Flags |= AIF_HIBYTE;
+        } else if (Arg[0] == '^') {
+            Flags |= AIF_BANKBYTE;
+        }
+
+        if ((Flags & (AIF_FAR)) != 0) {
+            /* Skip this char */
+            ++Arg;
+        }
+
+        /* Skip spaces */
+        while (Arg[0] == ' ') {
+            ++Arg;
+        }
+
+        /* Strip parentheses off if exist */
+        if (Arg[0] == '(') {
+            /* Skip this char */
+            ++Arg;
+
+            End = strchr (Arg, ')');
+            if (End == 0 || End[1] != '\0') {
+                /* Not closed at the end, bail out */
+                *Offset = 0;
+                if (ArgInfo != 0) {
+                    *ArgInfo = Flags | AIF_FAILURE;
+                }
+                return 0;
+            }
+
+            /* Found */
+            Parentheses = 1;
+
+            /* Skip spaces */
+            while (Arg[0] == ' ') {
+                ++Arg;
+            }
+        }
+
+        /* If the symbol name starts with an underline, it is an external symbol.
+        ** If the symbol does not start with an underline, it may be a built-in
+        ** symbol.
+        */
+        if (Arg[0] == '_') {
+            Flags |= AIF_EXTERNAL;
+        } else {
+            Flags |= AIF_BUILTIN;
+        }
+
+        /* Rip off the offset if present. */
+        OffsetPart = strchr (Arg, '+');
+        if (OffsetPart == 0) {
+            OffsetPart = strchr (Arg, '-');
+        }
+
+        if (OffsetPart != 0) {
+            /* Get the real arg name */
+            NameEnd = strchr (Arg, ' ');
+            if (NameEnd == 0 || NameEnd > OffsetPart) {
+                NameEnd = OffsetPart;
+            }
+            SB_CopyBuf (Name, Arg, NameEnd - Arg);
+            SB_Terminate (Name);
+
+        } else {
+            /* No offset */
+            if (Parentheses == 0) {
+                SB_CopyStr (Name, Arg);
+            } else {
+                SB_CopyBuf (Name, Arg, End - Arg);
+            }
+            SB_Terminate (Name);
+        }
+
+        if ((Flags & AIF_EXTERNAL) == 0) {
+            if (SB_GetLen (Name) > 0) {
+                Flags |= AIF_HAS_NAME;
+
+                /* See if the name is a local label */
+                if (IsLocalLabelName (SB_GetConstBuf (Name))) {
+                    Flags |= AIF_LOCAL;
+                }
+            }
+
+        } else {
+            if (SB_GetLen (Name) <= 0) {
+                /* Invalid external name */
+                Flags &= ~AIF_EXTERNAL;
+                *Offset = 0;
+                if (ArgInfo != 0) {
+                    *ArgInfo = Flags | AIF_FAILURE;
+                }
+                return 0;
+            }
+            Flags |= AIF_HAS_NAME;
+        }
+
+        /* A byte size expression with no parentheses but an offset is not
+        ** handled correctly for now, so just bail out in such cases.
+        */
+        if ((Flags & AIF_FAR) != 0  &&
+            Parentheses == 0        &&
+            OffsetPart != 0         &&
+            OffsetPart[0] != '\0') {
+            /* Bail out */
+            *Offset = 0;
+            if (ArgInfo != 0) {
+                *ArgInfo = Flags | AIF_FAILURE;
+            }
+            return 0;
+        }
+    }
+
+    /* Get the offset */
+    while (OffsetPart != 0       &&
+           OffsetPart[0] != '\0' &&
+           OffsetPart[0] != ')') {
+        /* Skip spaces */
+        while (OffsetPart[0] == ' ') {
+            ++OffsetPart;
+        }
+
+        Negative = 0;
+        if (OffsetPart[0] == '+') {
+            ++OffsetPart;
+        } else if (OffsetPart[0] == '-') {
+            Negative = 1;
+            ++OffsetPart;
+        }
+
+        /* Skip spaces */
+        while (OffsetPart[0] == ' ') {
+            ++OffsetPart;
+        }
+
+        /* Determine the base and convert the value. strtol/strtoul is not
+        ** exactly what we want here, but it's cheap and may be replaced by
+        ** something fancier later.
+        */
+        if (OffsetPart[0] == '$') {
+            /* Base 16 hexedemical */
+            NumVal = strtoul (OffsetPart+1, &End, 16);
+        } else if (OffsetPart[0] != '%') {
+            /* Base 10 decimal */
+            NumVal = strtoul (OffsetPart, &End, 10);
+        } else {
+            /* Base 2 binary */
+            NumVal = strtoul (OffsetPart+1, &End, 2);
+        }
+
+        /* Check if the conversion was successful */
+        if (*End != '\0' && *End != ' ' && *End != '+' && *End != '-' && *End != ')') {
+            /* Could not convert */
+            *Offset = 0;
+            if (ArgInfo != 0) {
+                *ArgInfo = Flags | AIF_FAILURE;
+            }
+            return 0;
+        }
+
+        /* Check for out of range result */
+        if (NumVal == ULONG_MAX && errno == ERANGE) {
+            /* Could not convert */
+            *Offset = 0;
+            if (ArgInfo != 0) {
+                *ArgInfo = Flags | AIF_FAILURE;
+            }
+            return 0;
+        }
+
+        /* This argument does have an offset */
+        Flags |= AIF_HAS_OFFSET;
+
+        if (Negative) {
+            AccOffset -= (long long)NumVal;
+        } else {
+            AccOffset += (long long)NumVal;
+        }
+
+        /* See if there are more */
+        Arg = OffsetPart;
+        OffsetPart = strchr (Arg, '+');
+        if (OffsetPart == 0) {
+            OffsetPart = strchr (Arg, '-');
+        }
+    }
+
+    if (AccOffset > LONG_MAX || AccOffset < LONG_MIN) {
+        /* Could not convert */
+        *Offset = 0;
+        if (ArgInfo != 0) {
+            *ArgInfo = Flags | AIF_FAILURE;
+        }
+        return 0;
+    }
+    *Offset = (long)AccOffset;
+    if (ArgInfo != 0) {
+        *ArgInfo = Flags & ~AIF_FAILURE;
+    }
+
+    return 1;
+}
+
+
+
 const char* MakeHexArg (unsigned Num)
 /* Convert Num into a string in the form $XY, suitable for passing it as an
 ** argument to NewCodeEntry, and return a pointer to the string.
@@ -371,6 +582,35 @@ const char* MakeHexArg (unsigned Num)
 
 
 
+void PreparseArg (CodeEntry* E)
+/* Parse the argument string and memorize the result for the code entry */
+{
+    StrBuf B;
+    SB_InitFromString (&B, xmalloc (strlen (E->Arg) + 1));
+
+    /* Parse the argument string */
+    if (ParseOpcArgStr (E->Arg, &E->ArgInfo, &B, &E->ArgOff)) {
+        E->ArgBase = SB_GetBuf (&B);
+
+        if ((E->ArgInfo & (AIF_HAS_NAME | AIF_HAS_OFFSET)) == AIF_HAS_OFFSET) {
+            E->Flags |= CEF_NUMARG;
+
+            /* Use the new numerical value */
+            E->Num = E->ArgOff;
+        }
+
+    } else {
+        /* Parsing fails. Issue an error/warning so that this could be spotted and fixed. */
+        E->ArgBase = EmptyArg;
+        SB_Done (&B);
+        if (Debug) {
+            Warning ("Parsing argument \"%s\" failed!", E->Arg);
+        }
+    }
+}
+
+
+
 CodeEntry* NewCodeEntry (opc_t OPC, am_t AM, const char* Arg,
                          CodeLabel* JumpTo, LineInfo* LI)
 /* Create a new code entry, initialize and return it */
@@ -382,15 +622,24 @@ CodeEntry* NewCodeEntry (opc_t OPC, am_t AM, const char* Arg,
     CodeEntry* E = xmalloc (sizeof (CodeEntry));
 
     /* Initialize the fields */
-    E->OPC    = D->OPC;
-    E->AM     = AM;
-    E->Size   = GetInsnSize (E->OPC, E->AM);
-    E->Arg    = GetArgCopy (Arg);
-    E->Flags  = NumArg (E->Arg, &E->Num)? CEF_NUMARG : 0;   /* Needs E->Arg */
-    E->Info   = D->Info;
-    E->JumpTo = JumpTo;
-    E->LI     = UseLineInfo (LI);
-    E->RI     = 0;
+    E->OPC      = D->OPC;
+    E->AM       = AM;
+    E->Size     = GetInsnSize (E->OPC, E->AM);
+    E->Arg      = GetArgCopy (Arg);
+    E->Flags    = 0;
+    E->Info     = D->Info;
+    E->ArgInfo  = 0;
+    E->JumpTo   = JumpTo;
+    E->LI       = UseLineInfo (LI);
+    E->RI       = 0;
+
+    /* Parse the argument string if it's given */
+    if (Arg == 0 || Arg[0] == '\0') {
+        E->ArgBase = EmptyArg;
+    } else {
+        PreparseArg (E);
+    }
+
     SetUseChgInfo (E, D);
     InitCollection (&E->Labels);
 
@@ -408,6 +657,9 @@ CodeEntry* NewCodeEntry (opc_t OPC, am_t AM, const char* Arg,
 void FreeCodeEntry (CodeEntry* E)
 /* Free the given code entry */
 {
+    /* Free the argument base string if we have one */
+    FreeParsedArg (E->ArgBase);
+
     /* Free the string argument if we have one */
     FreeArg (E->Arg);
 
@@ -472,9 +724,8 @@ void CE_ClearJumpTo (CodeEntry* E)
     /* Clear the JumpTo entry */
     E->JumpTo = 0;
 
-    /* Clear the argument and assign the empty one */
-    FreeArg (E->Arg);
-    E->Arg = EmptyArg;
+    /* Clear the argument */
+    CE_SetArg (E, 0);
 }
 
 
@@ -493,17 +744,106 @@ void CE_MoveLabel (CodeLabel* L, CodeEntry* E)
 
 
 void CE_SetArg (CodeEntry* E, const char* Arg)
-/* Replace the argument by the new one. */
+/* Replace the whole argument by the new one. */
 {
+    /* Free the old parsed argument base */
+    FreeParsedArg (E->ArgBase);
+
     /* Free the old argument */
     FreeArg (E->Arg);
 
     /* Assign the new one */
     E->Arg = GetArgCopy (Arg);
 
+    /* Parse the new argument string */
+    PreparseArg (E);
+
     /* Update the Use and Chg in E */
-    const OPCDesc* D = GetOPCDesc (E->OPC);
-    SetUseChgInfo (E, D);
+    SetUseChgInfo (E, GetOPCDesc (E->OPC));
+}
+
+
+
+void CE_SetArgBaseAndOff (CodeEntry* E, const char* ArgBase, long ArgOff)
+/* Replace the new argument base and offset. Argument base is always applied.
+** Argument offset is applied if and only if E has the AIF_HAS_OFFSET flag set.
+*/
+{
+    if (ArgBase != 0 && ArgBase[0] != '\0') {
+
+        /* The argument base is not blank */
+        char Buf[IDENTSIZE + 16];
+        char* Str = Buf;
+        size_t Len = strlen (ArgBase) + 16;
+        if (Len >= sizeof (Buf)) {
+            Str = xmalloc (Len);
+        }
+
+        if ((E->ArgInfo & AIF_FAR) == 0) {
+            if (CE_HasArgOffset (E)) {
+                sprintf (Str, "%s%+ld", ArgBase, ArgOff);
+            } else {
+                sprintf (Str, "%s", ArgBase);
+            }
+            CE_SetArg (E, Str);
+        } else {
+            /* A byte expression */
+            const char* Expr = "";
+            if ((E->ArgInfo & AIF_FAR) == AIF_LOBYTE) {
+                Expr = "<";
+            } else if ((E->ArgInfo & AIF_FAR) == AIF_HIBYTE) {
+                Expr = ">";
+            } else if ((E->ArgInfo & AIF_FAR) == AIF_BANKBYTE) {
+                Expr = "^";
+            } else {
+                Internal ("Invalid byte size flag in CE_SetArgBaseAndOff");
+            }
+
+            if (CE_HasArgOffset (E)) {
+                sprintf (Str, "%s(%s%+ld)", Expr, ArgBase, ArgOff);
+            } else {
+                sprintf (Str, "%s(%s)", Expr, ArgBase);
+            }
+        }
+
+        CE_SetArg (E, Str);
+
+        if (Str != Buf) {
+            xfree (Str);
+        }
+
+    } else {
+        /* The argument has no base */
+        if ((E->ArgInfo & AIF_HAS_OFFSET) != 0) {
+            /* This is a numeric argument */
+            E->Flags |= CEF_NUMARG;
+            CE_SetNumArg (E, ArgOff);
+        } else {
+            /* Empty argument */
+            CE_SetArg (E, EmptyArg);
+        }
+    }
+}
+
+
+
+void CE_SetArgBase (CodeEntry* E, const char* ArgBase)
+/* Replace the argument base by the new one.
+** The entry must have an existing base.
+*/
+{
+    /* Check that the entry has a base name */
+    CHECK (CE_HasArgBase (E));
+
+    CE_SetArgBaseAndOff (E, ArgBase, E->ArgOff);
+}
+
+
+
+void CE_SetArgOffset (CodeEntry* E, long ArgOff)
+/* Replace the argument offset by the new one */
+{
+    CE_SetArgBaseAndOff (E, E->ArgBase, ArgOff);
 }
 
 
@@ -516,24 +856,45 @@ void CE_SetNumArg (CodeEntry* E, long Num)
     char Buf[16];
 
     /* Check that the entry has a numerical argument */
-    CHECK (E->Flags & CEF_NUMARG);
+    CHECK (CE_HasNumArg (E));
 
     /* Make the new argument string */
     if (E->Size == 2) {
         Num &= 0xFF;
         xsprintf (Buf, sizeof (Buf), "$%02X", (unsigned) Num);
-    } else if (E->Size == 3) {
+    } else if (E->Size == 3 || E->Size == 5) {
         Num &= 0xFFFF;
         xsprintf (Buf, sizeof (Buf), "$%04X", (unsigned) Num);
     } else {
         Internal ("Invalid instruction size in CE_SetNumArg");
     }
 
-    /* Replace the argument by the new one */
+    /* Replace the whole argument by the new one */
     CE_SetArg (E, Buf);
+}
 
-    /* Use the new numerical value */
-    E->Num = Num;
+
+
+int CE_IsArgStrParsed (const CodeEntry* E)
+/* Return true if the argument of E was successfully parsed last time */
+{
+    return (E->ArgInfo & AIF_FAILURE) == 0;
+}
+
+
+
+int CE_HasArgBase (const CodeEntry* E)
+/* Return true if the argument of E has a non-blank base name */
+{
+    return (E->ArgInfo & AIF_HAS_NAME) != 0 && E->ArgBase[0] != '\0';
+}
+
+
+
+int CE_HasArgOffset (const CodeEntry* E)
+/* Return true if the argument of E has a non-zero offset */
+{
+    return (E->ArgInfo & AIF_HAS_OFFSET) != 0 && E->ArgOff != 0;
 }
 
 
