@@ -151,6 +151,11 @@ else
 endif
 
 # --------------------------------------------------------------------------
+# Lists of subdirectories
+
+DIRLIST = tutorial
+
+# --------------------------------------------------------------------------
 # Lists of executables
 
 EXELIST_c64 =      \
@@ -215,10 +220,17 @@ ifndef EXELIST_$(SYS)
 EXELIST_$(SYS) := ${patsubst %.c,%,$(wildcard *.c)}
 endif
 
+define SUBDIR_recipe
+
+@$(MAKE) -C $(dir) --no-print-directory $@
+
+endef # SUBDIR_recipe
+
 # --------------------------------------------------------------------------
 # Rules to make the binaries and the disk
 
 samples: $(EXELIST_$(SYS))
+	$(foreach dir,$(DIRLIST),$(SUBDIR_recipe))
 
 disk: $(DISK_$(SYS))
 
@@ -324,7 +336,7 @@ install:
 	$(INSTALL) -d $(DESTDIR)$(samplesdir)/geos
 	$(INSTALL) -d $(DESTDIR)$(samplesdir)/tutorial
 	$(INSTALL) -m0644 *.* $(DESTDIR)$(samplesdir)
-	$(INSTALL) -m0644 README $(DESTDIR)$(samplesdir)
+	$(INSTALL) -m0644 readme.txt $(DESTDIR)$(samplesdir)
 	$(INSTALL) -m0644 Makefile $(DESTDIR)$(samplesdir)
 	$(INSTALL) -m0644 geos/*.* $(DESTDIR)$(samplesdir)/geos
 	$(INSTALL) -m0644 tutorial/*.* $(DESTDIR)$(samplesdir)/tutorial
@@ -344,3 +356,4 @@ mostlyclean:
 clean: mostlyclean
 	@$(DEL) $(EXELIST_$(SYS)) $(DISK_$(SYS)) 2>$(NULLDEV)
 	@$(DEL) multdemo.? ovrldemo.? 2>$(NULLDEV)
+	$(foreach dir,$(DIRLIST),$(SUBDIR_recipe))
