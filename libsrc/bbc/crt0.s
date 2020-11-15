@@ -6,6 +6,7 @@
 	.export		__STARTUP__		; Mark as startup
 
 	.import		initlib, donelib
+    .export     initmainargs
 	.import		zerobss, callmain
 	.import		__MAIN_START__, __MAIN_SIZE__
 	.import		__STACKSIZE__
@@ -55,6 +56,9 @@ L2:	lda	zpsave,x
 	ldx	spsave	; get stored SP
 	txs		; restore stack
 	rts		; and return
+
+initmainargs:
+    rts
 
 ; ------------------------------------------------------------------------
 ; Save space by putting some of the start-up code in the ONCE segment,
