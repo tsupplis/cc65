@@ -1,1 +1,0 @@
-PREFIX=/opt/cc-6502 make -j2 all
