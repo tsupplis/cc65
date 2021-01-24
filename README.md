@@ -27,8 +27,8 @@ including
   - the Atari 2600 console.
   - the Atari 5200 console.
   - *the BBC Micro and BBC Master system.* (Origin: https://github.com/atcurtis/cc65 and
-   https://github.com/dominicbeesley/cc65 
-  - *BBC atom* (Origin https://github.com/janrinze/cc65)
+   https://github.com/dominicbeesley/cc65)
+  - *BBC Atom* (Origin https://github.com/janrinze/cc65)
   - GEOS for the C64, C128 and Apple //e.
   - the Bit Corporation Gamate console.
   - the NEC PC-Engine (aka TurboGrafx-16) console.
