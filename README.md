@@ -21,24 +21,24 @@ including
   - CBM 510 (aka P500)
   - the 600/700 family
   - newer PET machines (not 2001).
-  - *the Apple I and replica I.* (Origin: https://github.com/jefftranter/6502)
-  - the Apple ]\[+ and successors.
-  - the Atari 8-bit machines.
-  - the Atari 2600 console.
-  - the Atari 5200 console.
-  - *the BBC Micro and BBC Master system.* (Origin: https://github.com/atcurtis/cc65 and
-   https://github.com/dominicbeesley/cc65)
-  - *BBC Atom* (Origin https://github.com/janrinze/cc65)
-  - GEOS for the C64, C128 and Apple //e.
-  - the Bit Corporation Gamate console.
-  - the NEC PC-Engine (aka TurboGrafx-16) console.
-  - the Nintendo Entertainment System (NES) console.
-  - the Watara Supervision console.
-  - the VTech Creativision console.
-  - the Oric Atmos.
-  - the Oric Telestrat.
-  - the Lynx console.
-  - the Ohio Scientific Challenger 1P.
+- *the Apple I and replica I.* (Origin: https://github.com/jefftranter/6502)
+- the Apple ]\[+ and successors.
+- the Atari 8-bit machines.
+- the Atari 2600 console.
+- the Atari 5200 console.
+- *the BBC Micro and BBC Master system.* (Origin: https://github.com/atcurtis/cc65 and
+ https://github.com/dominicbeesley/cc65)
+- *BBC Atom* (Origin https://github.com/janrinze/cc65)
+- GEOS for the C64, C128 and Apple //e.
+- the Bit Corporation Gamate console.
+- the NEC PC-Engine (aka TurboGrafx-16) console.
+- the Nintendo Entertainment System (NES) console.
+- the Watara Supervision console.
+- the VTech Creativision console.
+- the Oric Atmos.
+- the Oric Telestrat.
+- the Lynx console.
+- the Ohio Scientific Challenger 1P.
 
 The libraries are fairly portable, so creating a version for other 6502s
 shouldn't be too much work.
