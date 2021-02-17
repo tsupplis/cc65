@@ -140,8 +140,7 @@ MKINC = $(GEOS) \
 
 TARGETUTIL = apple2    \
              apple2enh \
-             atari     \
-             geos-apple
+             atari
 
 GEOSDIRS = common      \
            conio       \
