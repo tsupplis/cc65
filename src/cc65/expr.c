@@ -2793,6 +2793,9 @@ static void hie_compare (const GenDesc* Ops,    /* List of generators */
                 }
             }
 
+            /* Get rid of unwanted flags */
+            ED_MakeConstBool (Expr, Expr->IVal);
+
             /* If the result is constant, this is suspicious when not in
             ** preprocessor mode.
             */
@@ -3167,6 +3170,9 @@ static void parseadd (ExprDesc* Expr)
                 Error ("Invalid operands for binary operator '+'");
                 flags = CF_INT;
             }
+
+            /* Array and function types must be converted to pointer types */
+            Expr->Type = PtrConversion (Expr->Type);
 
             /* Result is an rvalue in primary register */
             ED_FinalizeRValLoad (Expr);
