@@ -651,11 +651,11 @@ void DoDeferred (unsigned Flags, ExprDesc* Expr)
 }
 
 
-static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall, ExprDesc* ED)
-/* Parse a function parameter list, and pass the arguments to the called
-** function. Depending on several criteria, this may be done by just pushing
-** into each parameter separately, or creating the parameter frame once, and
-** then storing into this frame.
+static unsigned FunctionArgList (FuncDesc* Func, int IsFastcall, ExprDesc* ED)
+/* Parse the argument list of the called function and pass the arguments to it.
+** Depending on several criteria, this may be done by just pushing into each
+** parameter separately, or creating the parameter frame once and then storing
+** arguments into this frame one by one.
 ** The function returns the size of the arguments pushed in bytes.
 */
 {
@@ -835,7 +835,7 @@ static unsigned FunctionParamList (FuncDesc* Func, int IsFastcall, ExprDesc* ED)
     /* Append last deferred inc/dec before the function is called.
     ** The last parameter needs to be preserved if it is passed in AX/EAX Regs.
     */
-    DoDeferred (IsFastcall ? SQP_KEEP_EAX : SQP_KEEP_NONE, &Expr);
+    DoDeferred (IsFastcall && PushedCount > 0 ? SQP_KEEP_EAX : SQP_KEEP_NONE, &Expr);
 
     /* Check if we had enough arguments */
     if (PushedCount < Func->ParamCount) {
@@ -860,10 +860,10 @@ static void FunctionCall (ExprDesc* Expr)
 {
     FuncDesc*     Func;           /* Function descriptor */
     int           IsFuncPtr;      /* Flag */
-    unsigned      ParamSize;      /* Number of parameter bytes */
+    unsigned      ArgSize;        /* Number of arguments bytes */
     CodeMark      Mark;
     int           PtrOffs = 0;    /* Offset of function pointer on stack */
-    int           IsFastcall = 0; /* True if it's a fast-call function */
+    int           IsFastcall = 0; /* True if we are fast-calling the function */
     int           PtrOnStack = 0; /* True if a pointer copy is on stack */
     Type*         ReturnType;
 
@@ -882,11 +882,8 @@ static void FunctionCall (ExprDesc* Expr)
         ** parameter count is zero.  Handle K & R functions as though there are
         ** parameters.
         */
-        IsFastcall = (Func->Flags & FD_VARIADIC) == 0 &&
-            (Func->ParamCount > 0 || (Func->Flags & FD_EMPTY)) &&
-            (AutoCDecl ?
-             IsQualFastcall (Expr->Type + 1) :
-             !IsQualCDecl (Expr->Type + 1));
+        IsFastcall = (Func->ParamCount > 0 || (Func->Flags & FD_EMPTY) != 0) &&
+                     IsFastcallFunc (Expr->Type + 1);
 
         /* Things may be difficult, depending on where the function pointer
         ** resides. If the function pointer is an expression of some sort
@@ -931,14 +928,12 @@ static void FunctionCall (ExprDesc* Expr)
         }
 
         /* If we didn't inline the function, get fastcall info */
-        IsFastcall = (Func->Flags & FD_VARIADIC) == 0 &&
-            (AutoCDecl ?
-             IsQualFastcall (Expr->Type) :
-             !IsQualCDecl (Expr->Type));
+        IsFastcall = (Func->ParamCount > 0 || (Func->Flags & FD_EMPTY) != 0) &&
+                     IsFastcallFunc (Expr->Type);
     }
 
-    /* Parse the parameter list */
-    ParamSize = FunctionParamList (Func, IsFastcall, Expr);
+    /* Parse the argument list and pass them to the called function */
+    ArgSize = FunctionArgList (Func, IsFastcall, Expr);
 
     /* We need the closing paren here */
     ConsumeRParen ();
@@ -957,11 +952,11 @@ static void FunctionCall (ExprDesc* Expr)
 
             /* Not a fastcall function - we may use the primary */
             if (PtrOnStack) {
-                /* If we have no parameters, the pointer is still in the
+                /* If we have no arguments, the pointer is still in the
                 ** primary. Remove the code to push it and correct the
                 ** stack pointer.
                 */
-                if (ParamSize == 0) {
+                if (ArgSize == 0) {
                     RemoveCode (&Mark);
                     PtrOnStack = 0;
                 } else {
@@ -974,7 +969,7 @@ static void FunctionCall (ExprDesc* Expr)
             }
 
             /* Call the function */
-            g_callind (FuncTypeOf (Expr->Type+1), ParamSize, PtrOffs);
+            g_callind (FuncTypeOf (Expr->Type+1), ArgSize, PtrOffs);
 
         } else {
 
@@ -983,7 +978,7 @@ static void FunctionCall (ExprDesc* Expr)
             ** Since fastcall functions may never be variadic, we can use the
             ** index register for this purpose.
             */
-            g_callind (CF_STACK, ParamSize, PtrOffs);
+            g_callind (CF_STACK, ArgSize, PtrOffs);
         }
 
         /* If we have a pointer on stack, remove it */
@@ -1035,9 +1030,9 @@ static void FunctionCall (ExprDesc* Expr)
 
             SB_Done (&S);
 
-            g_call (FuncTypeOf (Expr->Type), Func->WrappedCall->Name, ParamSize);
+            g_call (FuncTypeOf (Expr->Type), Func->WrappedCall->Name, ArgSize);
         } else {
-            g_call (FuncTypeOf (Expr->Type), (const char*) Expr->Name, ParamSize);
+            g_call (FuncTypeOf (Expr->Type), (const char*) Expr->Name, ArgSize);
         }
 
     }
@@ -2452,15 +2447,11 @@ static void hie_compare (const GenDesc* Ops,    /* List of generators */
             }
         } else if (IsClassPtr (Expr->Type)) {
             if (IsClassPtr (Expr2.Type)) {
-                /* Both pointers are allowed in comparison if they point to
-                ** the same type, or if one of them is a void pointer.
-                */
-                Type* left  = Indirect (Expr->Type);
-                Type* right = Indirect (Expr2.Type);
-                if (TypeCmp (left, right) < TC_QUAL_DIFF && left->C != T_VOID && right->C != T_VOID) {
-                    /* Incompatible pointers */
+                /* Pointers are allowed in comparison */
+                if (TypeCmp (Expr->Type, Expr2.Type).C < TC_STRICT_COMPATIBLE) {
+                    /* Warn about distinct pointer types */
                     TypeCompatibilityDiagnostic (PtrConversion (Expr->Type), PtrConversion (Expr2.Type), 0,
-                        "Incompatible pointer types comparing '%s' with '%s'");
+                        "Distinct pointer types comparing '%s' with '%s'");
                 }
             } else if (!ED_IsNullPtr (&Expr2)) {
                 if (IsClassInt (Expr2.Type)) {
@@ -2859,27 +2850,31 @@ static void parseadd (ExprDesc* Expr, int DoArrayRef)
             } else {
                 /* OOPS */
                 AddDone = -1;
+                /* Avoid further errors */
+                ED_MakeConstAbsInt (Expr, 0);
             }
 
-            /* Do constant calculation if we can */
-            if (ED_IsAbs (&Expr2) &&
-                (ED_IsAbs (Expr) || lscale == 1)) {
-                if (IsClassInt (lhst) && IsClassInt (rhst)) {
-                    Expr->Type = ArithmeticConvert (Expr->Type, Expr2.Type);
+            if (!AddDone) {
+                /* Do constant calculation if we can */
+                if (ED_IsAbs (&Expr2) &&
+                    (ED_IsAbs (Expr) || lscale == 1)) {
+                    if (IsClassInt (lhst) && IsClassInt (rhst)) {
+                        Expr->Type = ArithmeticConvert (Expr->Type, Expr2.Type);
+                    }
+                    Expr->IVal = Expr->IVal * lscale + Expr2.IVal * rscale;
+                    AddDone = 1;
+                } else if (ED_IsAbs (Expr) &&
+                    (ED_IsAbs (&Expr2) || rscale == 1)) {
+                    if (IsClassInt (lhst) && IsClassInt (rhst)) {
+                        Expr2.Type = ArithmeticConvert (Expr2.Type, Expr->Type);
+                    }
+                    Expr2.IVal = Expr->IVal * lscale + Expr2.IVal * rscale;
+                    /* Adjust the flags */
+                    Expr2.Flags |= Expr->Flags & ~E_MASK_KEEP_SUBEXPR;
+                    /* Get the symbol and the name */
+                    *Expr = Expr2;
+                    AddDone = 1;
                 }
-                Expr->IVal = Expr->IVal * lscale + Expr2.IVal * rscale;
-                AddDone = 1;
-            } else if (ED_IsAbs (Expr) &&
-                (ED_IsAbs (&Expr2) || rscale == 1)) {
-                if (IsClassInt (lhst) && IsClassInt (rhst)) {
-                    Expr2.Type = ArithmeticConvert (Expr2.Type, Expr->Type);
-                }
-                Expr2.IVal = Expr->IVal * lscale + Expr2.IVal * rscale;
-                /* Adjust the flags */
-                Expr2.Flags |= Expr->Flags & ~E_MASK_KEEP_SUBEXPR;
-                /* Get the symbol and the name */
-                *Expr = Expr2;
-                AddDone = 1;
             }
 
             if (AddDone) {
@@ -3273,16 +3268,24 @@ static void parsesub (ExprDesc* Expr)
     if (IsClassPtr (lhst) && IsClassPtr (rhst)) {
 
         /* Pointer diff */
-        if (TypeCmp (Indirect (lhst), Indirect (rhst)) < TC_QUAL_DIFF) {
-            Error ("Incompatible pointer types");
+        if (TypeCmp (lhst, rhst).C >= TC_STRICT_COMPATIBLE) {
+            /* We'll have to scale the result */
+            rscale = PSizeOf (lhst);
+            /* We cannot scale by 0-size or unknown-size */
+            if (rscale == 0) {
+                TypeCompatibilityDiagnostic (lhst, rhst,
+                    1, "Invalid pointer types in subtraction: '%s' and '%s'");
+                /* Avoid further errors */
+                rscale = 1;
+            }
+        } else {
+            TypeCompatibilityDiagnostic (lhst, rhst,
+                1, "Incompatible pointer types in subtraction: '%s' and '%s'");
         }
 
         /* Operate on pointers, result type is an integer */
         flags = CF_PTR;
         Expr->Type = type_int;
-
-        /* We'll have to scale the result */
-        rscale = CheckedPSizeOf (lhst);
 
         /* Check for a constant rhs expression */
         if (ED_IsQuasiConst (&Expr2) && ED_CodeRangeIsEmpty (&Expr2)) {
@@ -4074,13 +4077,17 @@ static void hieQuest (ExprDesc* Expr)
         ** Conversion rules for ?: expression are:
         **   - if both expressions are int expressions, default promotion
         **     rules for ints apply.
-        **   - if both expressions are pointers of the same type, the
-        **     result of the expression is of this type.
+        **   - if both expressions have the same structure, union or void type,
+        **     the result has the same type.
+        **   - if both expressions are pointers to compatible types (possibly
+        **     qualified differently), the result of the expression is an
+        **     appropriately qualified version of the composite type.
+        **   - if one of the expressions is a pointer and the other is a
+        **     pointer to (possibly qualified) void, the resulting type is a
+        **     pointer to appropriately qualified void.
         **   - if one of the expressions is a pointer and the other is
-        **     a zero constant, the resulting type is that of the pointer
-        **     type.
-        **   - if both expressions are void expressions, the result is of
-        **     type void.
+        **     a null pointer constant, the resulting type is that of the
+        **     pointer type.
         **   - all other cases are flagged by an error.
         */
         if (IsClassInt (Expr2.Type) && IsClassInt (Expr3.Type)) {
@@ -4110,12 +4117,28 @@ static void hieQuest (ExprDesc* Expr)
             }
 
         } else if (IsClassPtr (Expr2.Type) && IsClassPtr (Expr3.Type)) {
-            /* Must point to same type */
-            if (TypeCmp (Indirect (Expr2.Type), Indirect (Expr3.Type)) < TC_EQUAL) {
-                Error ("Incompatible pointer types");
+            /* If one of the two is 'void *', the result type is a pointer to
+            ** appropriately qualified void.
+            */
+            if (IsTypeVoid (Indirect (Expr2.Type))) {
+                ResultType = PointerTo (Indirect (Expr2.Type));
+                ResultType[1].C |= GetQualifier (Indirect (Expr3.Type));
+            } else if (IsTypeVoid (Indirect (Expr3.Type))) {
+                ResultType = PointerTo (Indirect (Expr3.Type));
+                ResultType[1].C |= GetQualifier (Indirect (Expr2.Type));
+            } else {
+                /* Must point to compatible types */
+                if (TypeCmp (Expr2.Type, Expr3.Type).C < TC_VOID_PTR) {
+                    TypeCompatibilityDiagnostic (Expr2.Type, Expr3.Type,
+                        1, "Incompatible pointer types in ternary: '%s' and '%s'");
+                    /* Avoid further errors */
+                    ResultType = PointerTo (type_void);
+                } else {
+                    /* Result has the composite type */
+                    ResultType = TypeDup (Expr2.Type);
+                    TypeComposition (ResultType, Expr3.Type);
+                }
             }
-            /* Result has the common type */
-            ResultType = Expr2.Type;
         } else if (IsClassPtr (Expr2.Type) && Expr3IsNULL) {
             /* Result type is pointer, no cast needed */
             ResultType = Expr2.Type;
@@ -4124,10 +4147,10 @@ static void hieQuest (ExprDesc* Expr)
             ResultType = Expr3.Type;
         } else if (IsTypeVoid (Expr2.Type) && IsTypeVoid (Expr3.Type)) {
             /* Result type is void */
-            ResultType = Expr3.Type;
+            ResultType = type_void;
         } else {
             if (IsClassStruct (Expr2.Type) && IsClassStruct (Expr3.Type) &&
-                TypeCmp (Expr2.Type, Expr3.Type) == TC_IDENTICAL) {
+                TypeCmp (Expr2.Type, Expr3.Type).C == TC_IDENTICAL) {
                 /* Result type is struct/union */
                 ResultType = Expr2.Type;
             } else {
@@ -4153,7 +4176,7 @@ static void hieQuest (ExprDesc* Expr)
         }
 
         /* Setup the target expression */
-        Expr->Type  = ResultType;
+        Expr->Type = ResultType;
     }
 }
 
