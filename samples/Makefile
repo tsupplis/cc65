@@ -196,9 +196,6 @@ EXELIST_atmos =    \
         mandelbrot \
         sieve
 
-EXELIST_bbc = \
-        notavailable
-
 EXELIST_c64 =      \
         ascii      \
         enumdevdir \
