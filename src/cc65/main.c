@@ -974,10 +974,6 @@ int main (int argc, char* argv[])
                     OptTarget (Arg, GetArg (&I, 2));
                     break;
 
-                case 'u':
-                    OptCreateDep (Arg, 0);
-                    break;
-
                 case 'v':
                     OptVerbose (Arg, 0);
                     break;
