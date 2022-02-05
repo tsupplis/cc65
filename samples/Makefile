@@ -201,8 +201,11 @@ EXELIST_atmos =    \
         mandelbrot \
         sieve
 
-EXELIST_bbc = \
-        notavailable
+EXELIST_bbc =      \
+        ascii      \
+        hello     
+
+EXELIST_bbcmaster = $(EXELIST_bbc)
 
 EXELIST_c64 =      \
         ascii      \
