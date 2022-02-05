@@ -199,6 +199,9 @@ EXELIST_atmos =    \
         mandelbrot \
         sieve
 
+EXELIST_bbc = \
+        notavailable
+
 EXELIST_c64 =      \
         ascii      \
         enumdevdir \
@@ -301,12 +304,6 @@ EXELIST_supervision = \
         
 EXELIST_sym1 =     \
         notavailable
-
-EXELIST_bbc =      \
-        ascii      \
-        hello     
-
-EXELIST_bbcmaster = $(EXELIST_bbc)
 
 EXELIST_telestrat = \
         ascii       \
@@ -480,7 +477,7 @@ zip:
 # Clean-up rules
 
 mostlyclean:
-	@$(DEL) *.inf *.lbl *.map *.o *.s 2>$(NULLDEV)
+	@$(DEL) *.lbl *.map *.o *.s 2>$(NULLDEV)
 
 clean: mostlyclean
 	@$(DEL) $(EXELIST_$(SYS)) $(DISK_$(SYS)) 2>$(NULLDEV)
