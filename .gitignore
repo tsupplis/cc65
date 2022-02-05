@@ -13,5 +13,6 @@ build
 install
 partial
 do_build
+do_test
 do_install
 do_partial
