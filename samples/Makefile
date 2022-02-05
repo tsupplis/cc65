@@ -311,7 +311,10 @@ EXELIST_bbcmaster = $(EXELIST_bbc)
 EXELIST_telestrat = \
         ascii       \
         gunzip65    \
-        hello
+        hello       \
+        mandelbrot  \
+        sieve       \
+#        tgidemo
 
 EXELIST_vic20 =    \
         ascii      \
