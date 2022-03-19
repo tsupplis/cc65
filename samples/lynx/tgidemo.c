@@ -1,16 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
+/* Tgidemo modified for the Atari Lynx.
+**
+** Press any of the Lynx's option buttons to go to the next screen.
+*/
+
 #include <cc65.h>
 #include <conio.h>
-#include <ctype.h>
-#include <modload.h>
 #include <tgi.h>
+#include <time.h>
 
-
-
-#ifndef DYN_DRV
-#  define DYN_DRV       1
-#endif
 
 #define COLOR_BACK      TGI_COLOR_BLACK
 #define COLOR_FORE      TGI_COLOR_WHITE
@@ -35,49 +32,29 @@ static unsigned AspectRatio;
 
 
 
-static void CheckError (const char* S)
+/* The Lynx draws too fast.  This function delays
+** the drawing so that we can watch it.
+*/
+static void wait (unsigned char ticks)
 {
-    unsigned char Error = tgi_geterror ();
+    clock_t T = clock () + ticks;
 
-    if (Error != TGI_ERR_OK) {
-        printf ("%s: %u\n", S, Error);
-        if (doesclrscrafterexit ()) {
-            cgetc ();
-        }
-        exit (EXIT_FAILURE);
-    }
+    while (clock () < T) {}
 }
-
-
-
-#if DYN_DRV
-static void DoWarning (void)
-/* Warn the user that the dynamic TGI driver is needed for this program */
-{
-    printf ("Warning: This program needs the TGI\n"
-            "driver on disk! Press 'y' if you have\n"
-            "it - any other key exits.\n");
-    if (tolower (cgetc ()) != 'y') {
-        exit (EXIT_SUCCESS);
-    }
-    printf ("OK. Please wait patiently...\n");
-}
-#endif
 
 
 
 static void DoCircles (void)
 {
-    static const unsigned char Palette[2] = { TGI_COLOR_WHITE, TGI_COLOR_BLUE };
     unsigned char I;
     unsigned char Color = COLOR_BACK;
     const unsigned X = MaxX / 2;
     const unsigned Y = MaxY / 2;
     const unsigned Limit = (X < Y) ? Y : X;
 
-    tgi_setpalette (Palette);
     tgi_setcolor (COLOR_FORE);
     tgi_clear ();
+
     tgi_line (0, 0, MaxX, MaxY);
     tgi_line (0, MaxY, MaxX, 0);
     while (!kbhit ()) {
@@ -85,6 +62,7 @@ static void DoCircles (void)
         tgi_setcolor (Color);
         for (I = 10; I <= Limit; I += 10) {
             tgi_ellipse (X, Y, I, tgi_imulround (I, AspectRatio));
+            wait (9);
         }
     }
 
@@ -95,15 +73,13 @@ static void DoCircles (void)
 
 static void DoCheckerboard (void)
 {
-    static const unsigned char Palette[2] = { TGI_COLOR_WHITE, TGI_COLOR_BLACK };
     unsigned X, Y;
     unsigned char Color = COLOR_BACK;
 
-    tgi_setpalette (Palette);
     tgi_clear ();
 
     while (1) {
-        for (Y = 0; Y <= MaxY; Y += 10) {
+        for (Y = 0; Y <= MaxY - 2; Y += 10) {
             for (X = 0; X <= MaxX; X += 10) {
                 Color = (Color == COLOR_FORE) ? COLOR_BACK : COLOR_FORE;
                 tgi_setcolor (Color);
@@ -112,6 +88,7 @@ static void DoCheckerboard (void)
                     cgetc ();
                     return;
                 }
+                wait (1);
             }
             Color = Color == COLOR_FORE ? COLOR_BACK : COLOR_FORE;
         }
@@ -123,13 +100,11 @@ static void DoCheckerboard (void)
 
 static void DoDiagram (void)
 {
-    static const unsigned char Palette[2] = { TGI_COLOR_WHITE, TGI_COLOR_BLACK };
     int XOrigin, YOrigin;
     int Amp;
     int X, Y;
     unsigned I;
 
-    tgi_setpalette (Palette);
     tgi_setcolor (COLOR_FORE);
     tgi_clear ();
 
@@ -150,11 +125,10 @@ static void DoDiagram (void)
 
     /* Sine */
     tgi_gotoxy (XOrigin, YOrigin);
-    for (I = 0; I <= 360; I += 5) {
-
+    for (I = 0; I <= 360; ++I) {
         /* Calculate the next points */
-        X = (int) (((long) (MaxX - 19) * I) / 360);
-        Y = (int) (((long) Amp * -_sin (I)) / 256);
+        X = (int)(((long)(MaxX - 19) * I) / 360);
+        Y = (int)(((long)Amp * -_sin (I)) / 256);
 
         /* Draw the line */
         tgi_lineto (XOrigin + X, YOrigin + Y);
@@ -167,11 +141,9 @@ static void DoDiagram (void)
 
 static void DoLines (void)
 {
-    static const unsigned char Palette[2] = { TGI_COLOR_WHITE, TGI_COLOR_BLACK };
     unsigned X;
     const unsigned Min = (MaxX < MaxY) ? MaxX : MaxY;
 
-    tgi_setpalette (Palette);
     tgi_setcolor (COLOR_FORE);
     tgi_clear ();
 
@@ -180,6 +152,7 @@ static void DoLines (void)
         tgi_line (0, 0, X, Min);
         tgi_line (Min, Min, 0, Min-X);
         tgi_line (Min, Min, Min-X, 0);
+        wait (9);
     }
 
     cgetc ();
@@ -187,52 +160,20 @@ static void DoLines (void)
 
 
 
-int main (void)
+void main (void)
 {
-    unsigned char Border;
-
-#if DYN_DRV
-    /* Warn the user that the tgi driver is needed */
-    DoWarning ();
-
-    /* Load and initialize the driver */
-    tgi_load_driver (tgi_stddrv);
-    CheckError ("tgi_load_driver");
-#else
     /* Install the driver */
     tgi_install (tgi_static_stddrv);
-    CheckError ("tgi_install");
-#endif
-
     tgi_init ();
-    CheckError ("tgi_init");
 
     /* Get stuff from the driver */
     MaxX = tgi_getmaxx ();
     MaxY = tgi_getmaxy ();
     AspectRatio = tgi_getaspectratio ();
 
-    /* Set the palette, set the border color */
-    Border = bordercolor (COLOR_BLACK);
-
     /* Do graphics stuff */
     DoCircles ();
     DoCheckerboard ();
     DoDiagram ();
     DoLines ();
-
-#if DYN_DRV
-    /* Unload the driver */
-    tgi_unload ();
-#else
-    /* Uninstall the driver */
-    tgi_uninstall ();
-#endif
-
-    /* Reset the border */
-    (void) bordercolor (Border);
-
-    /* Done */
-    printf ("Done\n");
-    return EXIT_SUCCESS;
 }
