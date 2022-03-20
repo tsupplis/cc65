@@ -26,6 +26,7 @@ TARGETS = apple1       \
           atarixl      \
           atari2600    \
           atari5200    \
+          atari7800    \
           atmos        \
           atom         \
           $(BBCS)      \
