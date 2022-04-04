@@ -9,4 +9,14 @@
 /cc65.zip
 /util/atari/*.exe
 /util/gamate/*.exe
-
+**/.DS_*
+**/.*.swp*
+build
+install
+partial
+do_build
+do_test
+do_install
+do_partial
+util/atari/ataricvt
+util/gamate/gamate-fixcart
