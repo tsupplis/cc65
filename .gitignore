@@ -1,5 +1,3 @@
-**/.DS_*
-**/.*.swp*
 /bin/
 /html/
 /info/
@@ -9,12 +7,6 @@
 /testwrk/
 /wrk/
 /cc65.zip
-build
-install
-partial
-do_build
-do_test
-do_install
-do_partial
-util/atari/ataricvt
-util/gamate/gamate-fixcart
+/util/atari/*.exe
+/util/gamate/*.exe
+
