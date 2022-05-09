@@ -2,6 +2,8 @@ This document contains all kinds of information that you should know if you want
 
 (''Note:'' The word "must" indicates a requirement.  The word "should" indicates a recomendation.)
 
+*this is work in progress and is constantly updated - if in doubt, please ask*
+
 # generally
 
 * You must obey these rules when contributing new code or documentation to cc65. We are well aware that not all existing code may respect all rules outlined here - but this is no reason for you not to respect them.
@@ -20,7 +22,7 @@ This is an ongoing controversial topic - everyone knows that. However, the follo
 * No extra spaces at the end of lines.
 * All text files must end with new-line characters.  Don't leave the last line "dangling".
 
-The (bash) scipts used to check the above rules can be found in ```.github/check```. You can also run all checks using ```make check```.
+The (bash) scripts used to check the above rules can be found in ```.github/check```. You can also run all checks using ```make check```.
 
 ### misc
 
@@ -51,6 +53,9 @@ color  := $0787
 The following is still very incomplete - if in doubt please look at existing sourcefiles and adapt to the existing style
 
 * Your files should obey the C89 standard.
+* We generally have a "no warnings" policy
+* Warnings must not be hidden by using typecasts - fix the code instead
+   * In printf-style functions use the PRIX64 (and similar) macros to deal with 64bit values
 * The normal indentation width should be four spaces.
 * You must use ANSI C comments (```/* */```); you must not use C++ comments (```//```).
 * When you add functions to an existing file, you should separate them by the same number of blank lines that separate the functions that already are in that file.
@@ -84,6 +89,21 @@ if (check()) {
     int* namedPtr[5];
     char* nextLine (FILE* f);
 </pre>
+
+### Header files
+
+Headers that belong to the standard library (libc) must conform with the C standard. That means:
+* all non standard functions, or functions that only exist in a certain standard, should be in #ifdefs
+    * the same is true for macros or typedefs
+<pre>
+#if __CC65_STD__ == __CC65_STD_C99__
+/* stuff that only exists in C99 here */
+#endif
+#if __CC65_STD__ == __CC65_STD_CC65__
+/* non standard stuff here */
+#endif
+</pre>
+You can refer to Annex B of the ISO C99 standard ([here](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf) is the draft).
 
 ## Assembly Sources
 
@@ -132,3 +152,14 @@ The only exception to the above are actions that are exclusive to the github act
 ## Wiki
 
 * The Wiki is strictly for additional information that does not fit into the regular user manual (LinuxDoc). The wiki must not duplicate any information that is present in the user manual
+
+# Roadmap / TODOs / open Ends
+
+## Documentation
+
+* the printf family of function does not completely implement all printf modifiers and does not behave as expected in some cases - all this should be documented in detail
+
+## Test suite
+
+* specific tests to check the optimizer (rather than the codegenerator) are needed.
+* we need more specific tests to check standard conformance of the library headers
