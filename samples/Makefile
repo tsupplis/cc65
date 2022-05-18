@@ -263,7 +263,6 @@ EXELIST_cbm610 =   \
 
 EXELIST_creativision = \
         ascii          \
-        checkversion \
         hello
 
 EXELIST_cx16 =     \
@@ -279,7 +278,6 @@ EXELIST_cx16 =     \
         tgidemo
 
 EXELIST_gamate =   \
-        checkversion \
         hello
 
 EXELIST_geos-cbm = \
@@ -297,14 +295,12 @@ EXELIST_lynx = \
         notavailable
 
 EXELIST_nes = \
-        checkversion \
         hello
 
 EXELIST_osic1p = \
         notavailable
 
 EXELIST_pce = \
-        checkversion \
         hello
 
 EXELIST_pet =      \
