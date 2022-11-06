@@ -287,7 +287,7 @@ static void ParseAutoDecl (Declaration* Decl)
             ** We abuse the Collection somewhat by using it to store line
             ** numbers.
             */
-            CollReplace (&CurrentFunc->LocalsBlockStack, (void *)(size_t)GetCurrentLine (),
+            CollReplace (&CurrentFunc->LocalsBlockStack, (void *)(size_t)GetCurrentLineNum (),
                 CollCount (&CurrentFunc->LocalsBlockStack) - 1);
 
         } else {
@@ -568,7 +568,7 @@ void DeclareLocals (void)
             continue;
         }
 
-        ParseDeclSpec (&Spec, SC_AUTO, T_INT);
+        ParseDeclSpec (&Spec, TS_DEFAULT_TYPE_INT, SC_AUTO);
         if ((Spec.Flags & DS_DEF_STORAGE) != 0 &&       /* No storage spec */
             (Spec.Flags & DS_DEF_TYPE) != 0    &&       /* No type given */
             GetQualifier (Spec.Type) == T_QUAL_NONE) {  /* No type qualifier */
