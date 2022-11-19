@@ -184,9 +184,9 @@ errout:
 
 invflags:
 	lda	#EINVAL
-	sta	__errno
+	sta	___errno
 	lda	#0
-	sta	__errno+1
+	sta	___errno+1
 	beq	errout
 
 ; Error entry: Close the file and exit

@@ -45,9 +45,9 @@
 
 invhandle:
         lda     #EINVAL
-        sta     __errno
+        sta     ___errno
         lda     #0
-        sta     __errno+1
+        sta     ___errno+1
         rts                     ; Return with carry set
 
 .endproc

@@ -118,8 +118,8 @@ rdchk:  lda	ptr3
 einval: lda	#EINVAL
 
         ; Return errno
-errno:  jsr	__seterrno
-	sta	__oserror
+errno:  jsr	___seterrno
+	sta	___oserror
 	lda	#'X'
 	jsr	ECHO
 	lda	#$FF
