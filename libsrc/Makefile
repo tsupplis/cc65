@@ -34,6 +34,7 @@ TARGETS = apple1       \
           $(GEOS)      \
           creativision \
           gamate       \
+          kim1         \
           lynx         \
           nes          \
           none         \

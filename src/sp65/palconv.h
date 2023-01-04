@@ -1,16 +1,12 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                               lynxsprite.h                                */
+/*                                 palconv.h                                 */
 /*                                                                           */
-/*    Lynx sprite format backend for the sp65 sprite and bitmap utility      */
+/*      Color palette conversions for the sp65 sprite and bitmap utility     */
 /*                                                                           */
 /*                                                                           */
 /*                                                                           */
-/* (C) 2012,      Ullrich von Bassewitz                                      */
-/*                Roemerstrasse 52                                           */
-/*                D-70794 Filderstadt                                        */
-/* EMail:         uz@cc65.org                                                */
-/*                                                                           */
+/* (C) 2022,      Karri Kaksonen                                             */
 /*                                                                           */
 /* This software is provided 'as-is', without any expressed or implied       */
 /* warranty.  In no event will the authors be held liable for any damages    */
@@ -33,10 +29,12 @@
 
 
 
-#ifndef LYNXSPRITE_H
-#define LYNXSPRITE_H
+#ifndef PALCONV_H
+#define PALCONV_H
 
 
+
+#include <stdio.h>
 
 /* common */
 #include "coll.h"
@@ -46,21 +44,29 @@
 #include "bitmap.h"
 
 
+/*****************************************************************************/
+/*                                   Data                                    */
+/*****************************************************************************/
+
+
 
 /*****************************************************************************/
 /*                                   Code                                    */
 /*****************************************************************************/
 
-
-
-StrBuf* GenLynxSprite (const Bitmap* B, const Collection* A);
-/* Generate binary output in packed Lynx sprite format for the bitmap B.
-** The output is stored in a string buffer (which is actually a dynamic
-** char array) and returned.
+StrBuf* PaletteTo (const Bitmap* B, const Collection* A);
+/* Convert the palette of bitmap B into some sort of other binary format.
+** The output is stored in a string buffer (which is actually a dynamic char
+** array) and returned. The actual output format is taken from the "target"
+** attribute in the attribute collection A.
 */
 
+void ListPaletteTargets (FILE* F);
+/* Output a list of palette targets */
 
-
-/* End of lynxsprite.h */
+/* End of palette.h */
 
 #endif
+
+
+

@@ -1,15 +1,12 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                               lynxsprite.h                                */
+/*                               lynxpalette.h                               */
 /*                                                                           */
-/*    Lynx sprite format backend for the sp65 sprite and bitmap utility      */
+/*    Lynx palette format backend for the sp65 sprite and bitmap utility     */
 /*                                                                           */
 /*                                                                           */
 /*                                                                           */
-/* (C) 2012,      Ullrich von Bassewitz                                      */
-/*                Roemerstrasse 52                                           */
-/*                D-70794 Filderstadt                                        */
-/* EMail:         uz@cc65.org                                                */
+/* (C) 2022,      Karri Kaksonen                                             */
 /*                                                                           */
 /*                                                                           */
 /* This software is provided 'as-is', without any expressed or implied       */
@@ -33,8 +30,8 @@
 
 
 
-#ifndef LYNXSPRITE_H
-#define LYNXSPRITE_H
+#ifndef LYNXPALETTE_H
+#define LYNXPALETTE_H
 
 
 
@@ -53,14 +50,14 @@
 
 
 
-StrBuf* GenLynxSprite (const Bitmap* B, const Collection* A);
-/* Generate binary output in packed Lynx sprite format for the bitmap B.
-** The output is stored in a string buffer (which is actually a dynamic
-** char array) and returned.
+StrBuf* GenLynxPalette (const Bitmap* B, const Collection* A);
+/* Generate binary output in Lynx palette format for the bitmap B. The output
+** is stored in a string buffer (which is actually a dynamic char array) and
+** returned.
 */
 
 
 
-/* End of lynxsprite.h */
+/* End of lynxpalette.h */
 
 #endif

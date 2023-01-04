@@ -1,16 +1,13 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                               lynxsprite.h                                */
+/*                                  kim1.h                                   */
 /*                                                                           */
-/*    Lynx sprite format backend for the sp65 sprite and bitmap utility      */
+/*                     KIM-1 system-specific definitions                     */
 /*                                                                           */
 /*                                                                           */
 /*                                                                           */
-/* (C) 2012,      Ullrich von Bassewitz                                      */
-/*                Roemerstrasse 52                                           */
-/*                D-70794 Filderstadt                                        */
-/* EMail:         uz@cc65.org                                                */
-/*                                                                           */
+/* (C) 2022      Dave Plummer                                                */
+/* Email:        davepl@davepl.com                                           */
 /*                                                                           */
 /* This software is provided 'as-is', without any expressed or implied       */
 /* warranty.  In no event will the authors be held liable for any damages    */
@@ -31,36 +28,33 @@
 /*                                                                           */
 /*****************************************************************************/
 
+#ifndef _KIM1_H
+#define _KIM1_H
+
+/* Check for errors */
+#if !defined(__KIM1__)
+#  error This module may only be used when compiling for the KIM-1!
+#endif
 
 
-#ifndef LYNXSPRITE_H
-#define LYNXSPRITE_H
 
+/*****************************************************************************/
+/*                                   Data                                    */
+/*****************************************************************************/
 
-
-/* common */
-#include "coll.h"
-#include "strbuf.h"
-
-/* sp65 */
-#include "bitmap.h"
-
-
+/*****************************************************************************/
+/*                                 Hardware                                  */
+/*****************************************************************************/
 
 /*****************************************************************************/
 /*                                   Code                                    */
 /*****************************************************************************/
 
+/* Read from tape */
+int __fastcall__ loadt (unsigned char);
 
+/* Write to tape */
+int __fastcall__ dumpt (unsigned char, const void*, const void*);
 
-StrBuf* GenLynxSprite (const Bitmap* B, const Collection* A);
-/* Generate binary output in packed Lynx sprite format for the bitmap B.
-** The output is stored in a string buffer (which is actually a dynamic
-** char array) and returned.
-*/
-
-
-
-/* End of lynxsprite.h */
-
+/* End of sym1.h */
 #endif
