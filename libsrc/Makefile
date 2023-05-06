@@ -46,6 +46,10 @@ TARGETS = apple1       \
           sym1         \
           telestrat
 
+TARGETTEST = none     \
+             sim6502  \
+             sim65c02
+
 DRVTYPES = emd \
            joy \
            mou \
@@ -60,7 +64,7 @@ OUTPUTDIRS := lib                                                               
               $(subst ../,,$(wildcard ../target/*/drv/*))                                     \
               $(subst ../,,$(wildcard ../target/*/util))
 
-.PHONY: all mostlyclean clean install zip lib $(TARGETS)
+.PHONY: all mostlyclean clean install zip lib libtest $(TARGETS)
 
 .SUFFIXES:
 
@@ -87,6 +91,8 @@ ifndef TARGET
 datadir = $(PREFIX)/share/cc65
 
 all lib: $(TARGETS)
+
+libtest: $(TARGETTEST)
 
 mostlyclean:
 	$(call RMDIR,../libwrk)
