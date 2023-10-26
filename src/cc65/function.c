@@ -547,7 +547,7 @@ void NewFunc (SymEntry* Func, FuncDesc* D)
     }
 
     /* Allocate code and data segments for this function */
-    Func->V.F.Seg = PushSegments (Func);
+    Func->V.F.Seg = PushSegContext (Func);
 
     /* Use the info in the segments for generating new local labels */
     UseLabelPoolFromSegments (Func->V.F.Seg);
@@ -565,15 +565,15 @@ void NewFunc (SymEntry* Func, FuncDesc* D)
         /* Generate the push */
         /* Handle struct/union specially */
         if (IsClassStruct (D->LastParam->Type)) {
-            Flags = TypeOf (GetStructReplacementType (D->LastParam->Type)) | CF_FORCECHAR;
+            Flags = CG_TypeOf (GetStructReplacementType (D->LastParam->Type)) | CF_FORCECHAR;
         } else {
-            Flags = TypeOf (D->LastParam->Type) | CF_FORCECHAR;
+            Flags = CG_TypeOf (D->LastParam->Type) | CF_FORCECHAR;
         }
         g_push (Flags, 0);
     }
 
     /* Generate function entry code if needed */
-    g_enter (FuncTypeOf (Func->Type), F_GetParamSize (CurrentFunc));
+    g_enter (CG_CallFlags (Func->Type), F_GetParamSize (CurrentFunc));
 
     /* If stack checking code is requested, emit a call to the helper routine */
     if (IS_Get (&CheckStack)) {
@@ -696,7 +696,7 @@ void NewFunc (SymEntry* Func, FuncDesc* D)
     }
 
     /* Switch back to the old segments */
-    PopSegments ();
+    PopSegContext ();
 
     /* Reset the current function pointer */
     FreeFunction (CurrentFunc);

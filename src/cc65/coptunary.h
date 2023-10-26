@@ -1,15 +1,15 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                                asmlabel.h                                 */
+/*                                coptunary.h                                */
 /*                                                                           */
-/*                      Generate assembler code labels                       */
+/*                     Optimize bitwise unary sequences                      */
 /*                                                                           */
 /*                                                                           */
 /*                                                                           */
-/* (C) 2000-2009 Ullrich von Bassewitz                                       */
-/*               Roemerstrasse 52                                            */
-/*               D-70794 Filderstadt                                         */
-/* EMail:        uz@cc65.org                                                 */
+/* (C) 2001-2012, Ullrich von Bassewitz                                      */
+/*                Roemerstrasse 52                                           */
+/*                D-70794 Filderstadt                                        */
+/* EMail:         uz@cc65.org                                                */
 /*                                                                           */
 /*                                                                           */
 /* This software is provided 'as-is', without any expressed or implied       */
@@ -33,60 +33,64 @@
 
 
 
-#ifndef ASMLABEL_H
-#define ASMLABEL_H
+#ifndef COPTUNARY_H
+#define COPTUNARY_H
+
+
+
+/* cc65 */
+#include "codeseg.h"
 
 
 
 /*****************************************************************************/
-/*                                 Forwards                                  */
+/*                            negax optimizations                            */
 /*****************************************************************************/
 
 
 
-struct SegContext;
-
-
-
-/*****************************************************************************/
-/*                                   Code                                    */
-/*****************************************************************************/
-
-
-
-void UseLabelPoolFromSegments (struct SegContext* Seg);
-/* Use the info in segments for generating new label numbers */
-
-unsigned GetLocalLabel (void);
-/* Get an unused assembler label for the function. Will never return zero. */
-
-const char* LocalLabelName (unsigned L);
-/* Make a label name from the given label number. The label name will be
-** created in static storage and overwritten when calling the function
-** again.
+unsigned OptNegAX1 (CodeSeg* S);
+/* Search for a call to negax and replace it by
+**
+**      eor     #$FF
+**      clc
+**      adc     #$01
+**
+** if X isn't used later.
 */
 
-int IsLocalLabelName (const char* Name);
-/* Return true if Name is the name of a local label */
-
-unsigned GetLocalDataLabel (void);
-/* Get an unused local data label. Will never return zero. */
-
-const char* LocalDataLabelName (unsigned L);
-/* Make a label name from the given data label number. The label name will be
-** created in static storage and overwritten when calling the function again.
-*/
-
-unsigned GetPooledLiteralLabel (void);
-/* Get an unused literal label. Will never return zero. */
-
-const char* PooledLiteralLabelName (unsigned L);
-/* Make a litral label name from the given label number. The label name will be
-** created in static storage and overwritten when calling the function again.
+unsigned OptNegAX2 (CodeSeg* S);
+/* Search for a call to negax and replace it by
+**
+**      ldx     #$FF
+**      eor     #$FF
+**      clc
+**      adc     #$01
+**      bcc     L1
+**      inx
+** L1:
+**
+** if X is known and zero on entry.
 */
 
 
 
-/* End of asmlabel.h */
+/*****************************************************************************/
+/*                           complax optimizations                           */
+/*****************************************************************************/
+
+
+
+unsigned OptComplAX1 (CodeSeg* S);
+/* Search for a call to complax and replace it by
+**
+**      eor     #$FF
+**
+** if X isn't used later.
+*/
+
+
+
+/* End of coptunary.h */
 
 #endif
