@@ -8,8 +8,8 @@
 
     	.export	_cclearxy, _cclear
 	.import	popa, _gotoxy, cputdirect
-	.importzp	tmp1
 
+    .include    "zeropage.inc"
 	.include	"atom.inc"
 
 _cclearxy:

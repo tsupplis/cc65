@@ -8,9 +8,8 @@
 
         .import         CLOSE
         .import         readdiskerror, closecmdchannel
-        .import         __oserror
-        .importzp       tmp2
 
+        .include        "zeropage.inc"
         .include        "errno.inc"
         .include        "atom.inc"
         .include        "filedes.inc"
@@ -69,7 +68,7 @@ notopen:
 
 ; Error entry, status not ok
 
-error:  sta     __oserror
+error:  sta     ___oserror
 errout: lda     #$FF
         tax                     ; Return -1
         rts

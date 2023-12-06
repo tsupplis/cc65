@@ -13,11 +13,10 @@
 
 	.import		addysp, popax
 	.import		fnparse, fnbuf, fdhandle
-	.import		__oserror
 	.import		fnunit
 	.import		_close
-	.importzp		sp, tmp2, tmp3
 
+	.include		"zeropage.inc"
 	.include		"errno.inc"
 	.include		"fcntl.inc"
 	.include		"filedes.inc"
@@ -174,7 +173,7 @@ nofile:
 ; Error entry. Error code is in A.
 
 error:
-	sta	__oserror
+	sta	___oserror
 errout:
 	lda	#$FF
 	tax					; Return -1

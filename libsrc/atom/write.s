@@ -9,9 +9,9 @@
 
         .import         SETLFS, OPEN, CKOUT, BSOUT, CLRCH
         .import         rwcommon
-        .import         __oserror
-        .importzp       sp, ptr1, ptr2, ptr3, tmp2
 
+        .include        "zeropage.inc"
+        .include        "errno.inc"
         .include        "fcntl.inc"
         .include        "atom.inc"
         .include        "filedes.inc"
@@ -112,7 +112,7 @@ notopen:
 ; Error entry, status not ok
 
 error5: lda     #5              ; Device not present
-error:  sta     __oserror
+error:  sta     ___oserror
 errout: lda     #$FF
         tax                     ; Return -1
         rts
