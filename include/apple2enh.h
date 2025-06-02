@@ -47,31 +47,6 @@
 
 
 /*****************************************************************************/
-/*                                   Data                                    */
-/*****************************************************************************/
-
-
-
-/* Characters codes */
-#define CH_DEL          0x7F
-#define CH_CURS_UP      0x0B
-#define CH_CURS_DOWN    0x0A
-
-/* These are defined to be OpenApple + NumberKey */
-#define CH_F1   0xB1
-#define CH_F2   0xB2
-#define CH_F3   0xB3
-#define CH_F4   0xB4
-#define CH_F5   0xB5
-#define CH_F6   0xB6
-#define CH_F7   0xB7
-#define CH_F8   0xB8
-#define CH_F9   0xB9
-#define CH_F10  0xB0
-
-
-
-/*****************************************************************************/
 /*                                 Variables                                 */
 /*****************************************************************************/
 
@@ -85,17 +60,6 @@ extern void a2e_ssc_ser[];        /* Referred to by ser_static_stddrv[]   */
 extern void a2e_gs_ser[];         /* IIgs serial driver                   */
 extern void a2e_hi_tgi[];         /* Referred to by tgi_static_stddrv[]   */
 extern void a2e_lo_tgi[];
-
-
-
-/*****************************************************************************/
-/*                                   Code                                    */
-/*****************************************************************************/
-
-
-
-void waitvsync (void);
-/* Wait for start of next frame */
 
 
 
