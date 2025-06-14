@@ -18,7 +18,8 @@ GEOS = geos-apple \
 BBCS = bbc \
        bbcmaster
 
-TARGETS = apple1       \
+TARGETS = agat         \
+          apple1       \
           replica1     \
           apple2       \
           apple2enh    \

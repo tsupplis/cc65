@@ -158,6 +158,11 @@ DIRLIST = tutorial geos atari2600 atari5200 apple2 gamate lynx supervision sym1 
 
 # --------------------------------------------------------------------------
 # Lists of executables
+EXELIST_agat =     \
+        ascii      \
+        checkversion \
+        hello      \
+        sieve
 
 EXELIST_apple2 =   \
         ascii      \
@@ -393,6 +398,7 @@ all:
 # --------------------------------------------------------------------------
 # List of every supported platform
 TARGETS :=     \
+  agat         \
   apple2       \
   apple2enh    \
   atari        \
