@@ -161,9 +161,8 @@ struct TargetEntry {
 ** CAUTION: must be alphabetically for bsearch().
 */
 static const TargetEntry TargetMap[] = {
-    {   "apple1",       TGT_APPLE1       },
-/* BEGIN SORTED.SH */
     {   "agat",         TGT_AGAT         },
+    {   "apple1",       TGT_APPLE1       },
     {   "apple2",       TGT_APPLE2       },
     {   "apple2enh",    TGT_APPLE2ENH    },
     {   "atari",        TGT_ATARI        },
