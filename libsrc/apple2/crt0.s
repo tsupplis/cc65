@@ -43,7 +43,7 @@
 
         ; Save the zero-page locations that we need.
 init:   ldx     #zpspace-1
-:       lda     sp,x
+:       lda     c_sp,x
         sta     zpsave,x
         dex
         bpl     :-
@@ -56,9 +56,10 @@ init:   ldx     #zpspace-1
         bpl     :-
 
         ; Check for ProDOS.
-        ldy     $BF00           ; MLI call entry point
-        cpy     #$4C            ; Is MLI present? (JMP opcode)
-        php                     ; Remember whether we're running ProDOS
+        lda     $BF00           ; MLI call entry point
+        sec
+        sbc     #$4C            ; Is MLI present? (JMP opcode)
+        pha                     ; Backup the result for later
         bne     basic
 
         ; Check the ProDOS system bit map.
@@ -82,8 +83,8 @@ basic:  lda     HIMEM
         ldx     HIMEM+1
 
         ; Set up the C stack.
-:       sta     sp
-        stx     sp+1
+:       sta     c_sp
+        stx     c_sp+1
 
         ; ProDOS TechRefMan, chapter 5.3.5:
         ; "Your system program should place in the RESET vector the
@@ -100,8 +101,8 @@ basic:  lda     HIMEM
         bit     $C081
         bit     $C081
 
-        plp                     ; Are we running ProDOS?
-        beq     :+              ; Yes, no need to patch vectors
+        pla                     ; If not running ProDOS, we need to patch 6502 vectors.
+        beq     :+
 
         lda     #<reset_6502
         ldx     #>reset_6502

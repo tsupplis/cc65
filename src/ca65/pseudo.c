@@ -1563,7 +1563,7 @@ static void DoP02 (void)
 
 
 static void DoP02X (void)
-/* Switch to 6502 CPU */
+/* Switch to 6502X CPU */
 {
     SetCPU (CPU_6502X);
 }
@@ -1578,10 +1578,18 @@ static void DoPC02 (void)
 
 
 
-static void DoP816 (void)
-/* Switch to 65816 CPU */
+static void DoPWC02 (void)
+/* Switch to W65C02 CPU */
 {
-    SetCPU (CPU_65816);
+    SetCPU (CPU_W65C02);
+}
+
+
+
+static void DoPCE02 (void)
+/* Switch to 65CE02 CPU */
+{
+    SetCPU (CPU_65CE02);
 }
 
 
@@ -1594,10 +1602,42 @@ static void DoP4510 (void)
 
 
 
+static void DoP45GS02 (void)
+/* Switch to 45GS02 CPU */
+{
+    SetCPU (CPU_45GS02);
+}
+
+
+
+static void DoP6280 (void)
+/* Switch to HuC6280 CPU */
+{
+    SetCPU (CPU_HUC6280);
+}
+
+
+
+static void DoP816 (void)
+/* Switch to 65816 CPU */
+{
+    SetCPU (CPU_65816);
+}
+
+
+
 static void DoPDTV (void)
 /* Switch to C64DTV CPU */
 {
     SetCPU (CPU_6502DTV);
+}
+
+
+
+static void DoPM740 (void)
+/* Switch to M740 CPU */
+{
+    SetCPU (CPU_M740);
 }
 
 
@@ -1708,6 +1748,14 @@ static void DoPSC02 (void)
 /* Switch to 65SC02 CPU */
 {
     SetCPU (CPU_65SC02);
+}
+
+
+
+static void DoPSweet16 (void)
+/* Switch to Sweet16 CPU */
+{
+    SetCPU (CPU_SWEET16);
 }
 
 
@@ -2143,10 +2191,16 @@ static CtrlDesc CtrlCmdTab [] = {
     { ccKeepToken,      DoConditionals  },      /* .IFP02 */
     { ccKeepToken,      DoConditionals  },      /* .IFP02X */
     { ccKeepToken,      DoConditionals  },      /* .IFP4510 */
+    { ccKeepToken,      DoConditionals  },      /* .IFP45GS02 */
+    { ccKeepToken,      DoConditionals  },      /* .IFP6280 */
     { ccKeepToken,      DoConditionals  },      /* .IFP816 */
     { ccKeepToken,      DoConditionals  },      /* .IFPC02 */
+    { ccKeepToken,      DoConditionals  },      /* .IFPCE02 */
     { ccKeepToken,      DoConditionals  },      /* .IFPDTV */
+    { ccKeepToken,      DoConditionals  },      /* .IFPM740 */
     { ccKeepToken,      DoConditionals  },      /* .IFPSC02 */
+    { ccKeepToken,      DoConditionals  },      /* .IFPSWEET16 */
+    { ccKeepToken,      DoConditionals  },      /* .IFPWC02 */
     { ccKeepToken,      DoConditionals  },      /* .IFREF */
     { ccNone,           DoImport        },      /* .IMPORT */
     { ccNone,           DoImportZP      },      /* .IMPORTZP */
@@ -2177,19 +2231,25 @@ static CtrlDesc CtrlCmdTab [] = {
     { ccNone,           DoP02           },      /* .P02 */
     { ccNone,           DoP02X          },      /* .P02X */
     { ccNone,           DoP4510         },      /* .P4510 */
+    { ccNone,           DoP45GS02       },      /* .P45GS02 */
+    { ccNone,           DoP6280         },      /* .P6280 */
     { ccNone,           DoP816          },      /* .P816 */
     { ccNone,           DoPageLength    },      /* .PAGELEN, .PAGELENGTH */
     { ccNone,           DoUnexpected    },      /* .PARAMCOUNT */
-    { ccNone,           DoPC02          },      /* .PSC02 */
+    { ccNone,           DoPC02          },      /* .PC02 */
+    { ccNone,           DoPCE02         },      /* .PCE02 */
     { ccNone,           DoPDTV          },      /* .PDTV */
+    { ccNone,           DoPM740         },      /* .PM740 */
     { ccNone,           DoPopCharmap    },      /* .POPCHARMAP */
     { ccNone,           DoPopCPU        },      /* .POPCPU */
     { ccNone,           DoPopSeg        },      /* .POPSEG */
     { ccNone,           DoProc          },      /* .PROC */
     { ccNone,           DoPSC02         },      /* .PSC02 */
+    { ccNone,           DoPSweet16      },      /* .PSWEET16 */
     { ccNone,           DoPushCharmap   },      /* .PUSHCHARMAP */
     { ccNone,           DoPushCPU       },      /* .PUSHCPU */
     { ccNone,           DoPushSeg       },      /* .PUSHSEG */
+    { ccNone,           DoPWC02         },      /* .PWC02 */
     { ccNone,           DoUnexpected    },      /* .REF, .REFERENCED */
     { ccNone,           DoReferTo       },      /* .REFTO, .REFERTO */
     { ccNone,           DoReloc         },      /* .RELOC */

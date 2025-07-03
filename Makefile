@@ -4,16 +4,36 @@ ifneq ($(SILENT),s)
     $(info Using Makefile: $(realpath $(firstword $(MAKEFILE_LIST))) $(MAKECMDGOALS))
 endif
 
-.PHONY: all mostlyclean clean install zip avail unavail bin lib doc html info samples test util checkstyle check
+.PHONY: all mostlyclean clean install zip avail unavail bin lib doc html info samples test util checkstyle check checkprefix
 
 .SUFFIXES:
 
-all install zip:
-	@$(MAKE) -C src     --no-print-directory $@
-	@$(MAKE) -C libsrc  --no-print-directory $@
-	@$(MAKE) -C doc     --no-print-directory $@
-	@$(MAKE) -C util    --no-print-directory $@
-	@$(MAKE) -C samples --no-print-directory $@
+all:
+	@$(MAKE) -C src         --no-print-directory $@
+	@$(MAKE) -C libsrc      --no-print-directory $@
+	@$(MAKE) -C doc         --no-print-directory $@
+	@$(MAKE) -C util        --no-print-directory $@
+	@$(MAKE) -C samples     --no-print-directory $@
+	@$(MAKE) checkprefix    --no-print-directory
+
+zip:
+	@$(MAKE) -C src         --no-print-directory $@
+	@$(MAKE) -C libsrc      --no-print-directory $@
+	@$(MAKE) -C doc         --no-print-directory $@
+	@$(MAKE) -C util        --no-print-directory $@
+	@$(MAKE) -C samples     --no-print-directory $@
+
+install:
+ifndef PREFIX
+ifndef DESTDIR
+	$(error Error: PREFIX or DESTDIR must be set for install to work)
+endif
+endif
+	@$(MAKE) -C src        --no-print-directory $@
+	@$(MAKE) -C libsrc     --no-print-directory $@
+	@$(MAKE) -C doc        --no-print-directory $@
+	@$(MAKE) -C util       --no-print-directory $@
+	@$(MAKE) -C samples    --no-print-directory $@
 
 mostlyclean clean:
 	@$(MAKE) -C src        --no-print-directory $@
@@ -24,26 +44,41 @@ mostlyclean clean:
 	@$(MAKE) -C test       --no-print-directory $@
 	@$(MAKE) -C targettest --no-print-directory $@
 
-avail unavail bin:
-	@$(MAKE) -C src     --no-print-directory $@
+avail unavail:
+# FIXME: actually not true, PREFIX is ignored?
+#ifndef PREFIX
+#    $(error Error: PREFIX must be set for avail/unavail to work)
+#endif
+	@$(MAKE) -C src        --no-print-directory $@
+
+bin:
+	@$(MAKE) -C src         --no-print-directory $@
+	@$(MAKE) checkprefix    --no-print-directory
 
 lib libtest:
-	@$(MAKE) -C libsrc  --no-print-directory $@
+	@$(MAKE) -C libsrc     --no-print-directory $@
 
 doc html info:
-	@$(MAKE) -C doc     --no-print-directory $@
+	@$(MAKE) -C doc        --no-print-directory $@
 
 samples:
-	@$(MAKE) -C samples --no-print-directory $@
+	@$(MAKE) -C samples    --no-print-directory $@
 
 util:
-	@$(MAKE) -C util    --no-print-directory $@
+	@$(MAKE) -C util       --no-print-directory $@
 
 %65:
-	@$(MAKE) -C src     --no-print-directory $@
+	@$(MAKE) -C src        --no-print-directory $@
 
 %:
-	@$(MAKE) -C libsrc  --no-print-directory $@
+	@$(MAKE) -C libsrc     --no-print-directory $@
+
+checkprefix:
+ifndef PREFIX
+ifndef DESTDIR
+	$(warning Warning: PREFIX and DESTDIR are empty - make install will not work)
+endif
+endif
 
 # check the code style
 checkstyle:
@@ -51,6 +86,10 @@ checkstyle:
 
 # check bsearch tables
 sorted:
+	@$(MAKE) -C .github/checks --no-print-directory $@
+
+# check that no modules use "sp", requires the binaries to be built first
+checksp:
 	@$(MAKE) -C .github/checks --no-print-directory $@
 
 # runs regression tests, requires libtest target libraries

@@ -223,10 +223,16 @@ struct DotKeyword {
     { ".IFP02",         TOK_IFP02               },
     { ".IFP02X",        TOK_IFP02X              },
     { ".IFP4510",       TOK_IFP4510             },
+    { ".IFP45GS02",     TOK_IFP45GS02           },
+    { ".IFP6280",       TOK_IFP6280             },
     { ".IFP816",        TOK_IFP816              },
     { ".IFPC02",        TOK_IFPC02              },
+    { ".IFPCE02",       TOK_IFPCE02             },
     { ".IFPDTV",        TOK_IFPDTV              },
+    { ".IFPM740",       TOK_IFPM740             },
     { ".IFPSC02",       TOK_IFPSC02             },
+    { ".IFPSWEET16",    TOK_IFPSWEET16          },
+    { ".IFPWC02",       TOK_IFPWC02             },
     { ".IFREF",         TOK_IFREF               },
     { ".IMPORT",        TOK_IMPORT              },
     { ".IMPORTZP",      TOK_IMPORTZP            },
@@ -262,20 +268,26 @@ struct DotKeyword {
     { ".P02",           TOK_P02                 },
     { ".P02X",          TOK_P02X                },
     { ".P4510",         TOK_P4510               },
+    { ".P45GS02",       TOK_P45GS02             },
+    { ".P6280",         TOK_P6280               },
     { ".P816",          TOK_P816                },
     { ".PAGELEN",       TOK_PAGELENGTH          },
     { ".PAGELENGTH",    TOK_PAGELENGTH          },
     { ".PARAMCOUNT",    TOK_PARAMCOUNT          },
     { ".PC02",          TOK_PC02                },
+    { ".PCE02",         TOK_PCE02               },
     { ".PDTV",          TOK_PDTV                },
+    { ".PM740",         TOK_PM740               },
     { ".POPCHARMAP",    TOK_POPCHARMAP          },
     { ".POPCPU",        TOK_POPCPU              },
     { ".POPSEG",        TOK_POPSEG              },
     { ".PROC",          TOK_PROC                },
     { ".PSC02",         TOK_PSC02               },
+    { ".PSWEET16",      TOK_PSWEET16            },
     { ".PUSHCHARMAP",   TOK_PUSHCHARMAP         },
     { ".PUSHCPU",       TOK_PUSHCPU             },
     { ".PUSHSEG",       TOK_PUSHSEG             },
+    { ".PWC02",         TOK_PWC02               },
     { ".REF",           TOK_REFERENCED          },
     { ".REFERENCED",    TOK_REFERENCED          },
     { ".REFERTO",       TOK_REFERTO             },
@@ -1277,8 +1289,15 @@ Again:
                         break;
 
                     case 'S':
-                        if ((CPU == CPU_4510) || (CPU == CPU_65816)) {
+                        if ((CPU == CPU_65CE02) || (CPU == CPU_4510) || (CPU == CPU_45GS02) || (CPU == CPU_65816)) {
                             CurTok.Tok = TOK_S;
+                            return;
+                        }
+                        break;
+
+                    case 'Q':
+                        if (CPU == CPU_45GS02) {
+                            CurTok.Tok = TOK_Q;
                             return;
                         }
                         break;
@@ -1297,7 +1316,7 @@ Again:
                             CurTok.Tok = TOK_OVERRIDE_ZP;
                            return;
                         } else {
-                            if (CPU == CPU_4510) {
+                            if ((CPU == CPU_65CE02) || (CPU == CPU_4510) || (CPU == CPU_45GS02)) {
                                 CurTok.Tok = TOK_Z;
                                 return;
                             }
@@ -1309,7 +1328,8 @@ Again:
                 }
                 break;
             case 2:
-                if ((CPU == CPU_4510) &&
+                /* FIXME: make sure we only alias "sp" to "s" when its really needed */
+                if (((CPU == CPU_65CE02) || (CPU == CPU_4510) || (CPU == CPU_45GS02)) &&
                     (toupper (SB_AtUnchecked (&CurTok.SVal, 0)) == 'S') &&
                     (toupper (SB_AtUnchecked (&CurTok.SVal, 1)) == 'P')) {
 
