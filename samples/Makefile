@@ -300,6 +300,7 @@ EXELIST_c16 =      \
 EXELIST_cbm510 =   \
         ascii      \
         checkversion \
+        enumdevdir \
         gunzip65   \
         hello      \
         joydemo    \
@@ -311,6 +312,7 @@ EXELIST_cbm510 =   \
 EXELIST_cbm610 =   \
         ascii      \
         checkversion \
+        enumdevdir \
         gunzip65   \
         hello      \
         terminal   \

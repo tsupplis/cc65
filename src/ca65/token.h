@@ -40,7 +40,6 @@
 
 /* common */
 #include "filepos.h"
-#include "inline.h"
 #include "strbuf.h"
 
 
@@ -137,6 +136,7 @@ typedef enum token_t {
     TOK_BLANK,
     TOK_BSS,
     TOK_BYTE,
+    TOK_CAP,
     TOK_CASE,
     TOK_CHARMAP,
     TOK_CODE,
@@ -323,15 +323,11 @@ int TokHasSVal (token_t Tok);
 int TokHasIVal (token_t Tok);
 /* Return true if the given token has an attached IVal */
 
-#if defined(HAVE_INLINE)
-INLINE int TokIsSep (enum token_t T)
+static inline int TokIsSep (enum token_t T)
 /* Return true if this is a separator token */
 {
     return (T == TOK_SEP || T == TOK_EOF);
 }
-#else
-#  define TokIsSep(T)   ((T) == TOK_SEP || (T) == TOK_EOF)
-#endif
 
 void CopyToken (Token* Dst, const Token* Src);
 /* Copy a token. The current value of Dst.SVal is free'd, so Dst must be

@@ -6,18 +6,11 @@ labels: bug
 assignees: ''
 
 ---
+**Compiler and OS**
+It is important to know what version of the compiler/assembler you used (call it with --version to get this info). Sometimes we also need to know what OS you are using.
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+Please tell us what you did, what happened, and what you expected to happen instead.
 
 **To Reproduce**
-Steps to reproduce the behavior:
-1. do '...'
-2. then '....'
-3. See error
-
-**Expected behavior**
-A clear and concise description of what you expected to happen.
-
-**Additional context**
-Add any other context about the problem here.
+If it isnt obvious how to reproduce the problem, please give use some detailed instructions on how to reproduce it. Ideally provide a testcase (program) that we can put into the testbench later.

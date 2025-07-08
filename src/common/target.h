@@ -39,6 +39,7 @@
 
 
 /* common */
+#include "capability.h"
 #include "cpu.h"
 
 
@@ -134,6 +135,9 @@ const TargetProperties* GetTargetProperties (target_t Target);
 
 const char* GetTargetName (target_t Target);
 /* Return the name of a target */
+
+int TargetHasCap (capability_t Cap);
+/* Check if the current target has the given capability */
 
 
 
