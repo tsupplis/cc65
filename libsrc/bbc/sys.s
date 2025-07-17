@@ -41,7 +41,7 @@ param := $da
 
 ; low level stdio program execution routines
 ; ==========================================
-; On entry, y=>top of stacked parameters at (sp), left-to-right
+; On entry, y=>top of stacked parameters at (c_sp), left-to-right
 ;           x=top parameter
 ; On exit,  xy=return value
 ;
@@ -112,14 +112,14 @@ Lescape1:
 ;_osbyte:
 	stx asave	;;
 	ldy #2
-	lda (sp),y	;x parameter
+	lda (c_sp),y	;x parameter
 	tax
 	iny
-	lda (sp),y	;y parameter
+	lda (c_sp),y	;y parameter
 	tay		;;
 ;	sta asave	;save it
 ;	ldy #0
-;	lda (sp),y	;type of call
+;	lda (c_sp),y	;type of call
 ;	ldy asave
 	lda asave	;;
 	jmp OSBYTE
@@ -139,11 +139,11 @@ _os_host:
 _os_fx:
 	stx asave	; A parameter
 	ldy #2
-	lda (sp),y	; X parameter
+	lda (c_sp),y	; X parameter
 	tax
 	iny
 	iny
-	lda (sp),y	; Y parameter
+	lda (c_sp),y	; Y parameter
 	tay
 	lda asave
 Losfx:
@@ -161,14 +161,14 @@ _os_word:
 ;_osword
 	stx asave	;;
 	ldy #2
-	lda (sp),y	;address lo
+	lda (c_sp),y	;address lo
 	tax
 	iny
-	lda (sp),y	;address hi
+	lda (c_sp),y	;address hi
 	tay		;;
 ;	sta asave	;save it
 ;	ldy #0
-;	lda (sp),y	;type of call
+;	lda (c_sp),y	;type of call
 ;	ldy asave
 	lda asave	;;
 	jsr OSWORD
@@ -204,7 +204,7 @@ Lcarry:
 .proc _os_bput
 	stx asave
 	ldy #2
-	lda (sp),y	; byte to write
+	lda (c_sp),y	; byte to write
 	ldy asave
 	beq Loswrch
 	jmp OSBPUT
@@ -217,7 +217,7 @@ Lcarry:
 _os_wrch:
 ;_vdu
 ;	ldy #0
-;	lda (sp),y
+;	lda (c_sp),y
 	txa		; get char from xy
 Loswrch:
 	jmp OSWRCH
@@ -244,15 +244,15 @@ _os_newl = OSNEWL
 .proc _osfile
 	jmp Lreterr
 ;	ldy #4
-;	lda (sp),y	;osfile type
+;	lda (c_sp),y	;osfile type
 ;~osfile	
 ;	pha		;save type
 ;	jsr ~gsconv	;convert name to MOS format
 ;	ldy #2
-;	lda (sp),y	;fcb address lo
+;	lda (c_sp),y	;fcb address lo
 ;	sta tr
 ;	iny
-;	lda (sp),y	;fcb address hi
+;	lda (c_sp),y	;fcb address hi
 ;	sta tr+1
 ;	ldy #0
 ;	lda #<gsbuf	;update file control block
@@ -284,7 +284,7 @@ _os_newl = OSNEWL
 ;;
 _os_file:
 	ldy #0
-	lda (sp),y	; osfile type
+	lda (c_sp),y	; osfile type
 	ldy #2          ; point to name
 Losfile:
 	pha		; save type
@@ -295,10 +295,10 @@ Losfile:
 	tya		; retrieve pointer to name
 	iny
 	iny		; point to fcb
-	lda (sp),y	;fcb address lo
+	lda (c_sp),y	;fcb address lo
 	sta tmp1
 	iny
-	lda (sp),y	;fcb address hi
+	lda (c_sp),y	;fcb address hi
 	sta tmp2
 	ldy #0
 	lda #<gsbuf	;update file control block
@@ -360,10 +360,10 @@ Losfile:
 _os_error:
 	stx $101	; store error number
 	ldy #2
-	lda (sp),y
+	lda (c_sp),y
 	sta ptr1
 	iny
-	lda (sp),y
+	lda (c_sp),y
 	sta ptr2	; pr=>string
 	ldy #$ff
 Loserrlp:
@@ -388,12 +388,12 @@ Lescset:
 _os_onerror:
 	iny
 	txa
-	ora (sp),y
+	ora (c_sp),y
 	beq Lonerroff
-	lda (sp),y
+	lda (c_sp),y
 ;	sta ...
 	dey
-	lda (sp),y
+	lda (c_sp),y
 ;	sta ...
 	rts
 Lonerroff:
@@ -429,10 +429,10 @@ Loscall3:
 	tax             ; returns value in A
 	rts
 Loscall1:
-	lda (sp),y
+	lda (c_sp),y
 	sta ptr1
 	iny
-	lda (sp),y
+	lda (c_sp),y
 	sta ptr2
 	ldy #5
 Loscall2:
@@ -458,10 +458,10 @@ Loscall2:
 Lgsconv:
 	ldy #0
 Lconv1:
-	lda (sp),y	;name lo
+	lda (c_sp),y	;name lo
 	sta ptr1
 	iny
-	lda (sp),y	;name hi
+	lda (c_sp),y	;name hi
 	sta ptr2
 	ldy #0
 Lconv:

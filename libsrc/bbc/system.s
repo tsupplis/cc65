@@ -18,7 +18,7 @@
 
 ; low level stdio program execution routines
 ; ==========================================
-; On entry, y=>top of stacked parameters at (sp), left-to-right
+; On entry, y=>top of stacked parameters at (c_sp), left-to-right
 ;           x=top parameter
 ; On exit,  xy=return value
 ;

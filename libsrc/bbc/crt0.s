@@ -31,7 +31,7 @@ init:
 
 ; low level stdio program execution routines
 ; ==========================================
-; On entry, y=>top of stacked parameters at (sp), left-to-right
+; On entry, y=>top of stacked parameters at (c_sp), left-to-right
 ;           x=top parameter
 ; On exit,  xy=return value
 ;
@@ -49,7 +49,7 @@ _exit:
 ; Copy back the zero-page stuff.
 	ldx	#zpspace-1
 L2:	lda	zpsave,x
-	sta	sp,x
+	sta	c_sp,x
 	dex
 	bpl	L2
 
@@ -72,7 +72,7 @@ __STARTUP__:
 
 ; Save the zero-page locations that we need.
 	ldx	#zpspace-1
-L1:	lda	sp,x
+L1:	lda	c_sp,x
 	sta	zpsave,x
 	dex
 	bpl	L1
@@ -81,8 +81,8 @@ L1:	lda	sp,x
 
 	lda	#<(__MAIN_START__ + __MAIN_SIZE__)
 	ldx	#>(__MAIN_START__ + __MAIN_SIZE__)
-	sta	sp
-	stx	sp+1
+	sta	c_sp
+	stx	c_sp+1
 
 ; Call the module constructors
 	jsr	initlib

@@ -22,7 +22,7 @@
     .segment        "STARTUP"
 
     ldx   #zpspace-1
-L1: lda    sp,x
+L1: lda    c_sp,x
     sta    zpsave,x    ; Save the zero page locations we need
     dex
     bpl    L1
@@ -37,9 +37,9 @@ L1: lda    sp,x
     stx    spsave         ; Save the system stack ptr
 
     lda    #<(__STACKBASE__)
-    sta    sp
+    sta    c_sp
     lda    #>(__STACKBASE__)
-    sta    sp+1           ; Set argument stack ptr
+    sta    c_sp+1           ; Set argument stack ptr
 
 ; Call module constructors
 
@@ -66,7 +66,7 @@ _exit:    jsr    donelib  ; Run module destructors
 
     ldx    #zpspace-1
 L2: lda    zpsave,x
-    sta    sp,x
+    sta    c_sp,x
     dex
     bpl    L2
 ; Reset changed vectors, back to basic

@@ -58,9 +58,9 @@ init:
 	; The Apple 1 has 4K of RAM from $0000 to $0FFF
 	;   and 4K from $E000 to $EFFF 
 	lda    	#<(__RAM_TOP__+1)
-	sta	sp
+	sta	c_sp
 	lda	#>(__RAM_TOP__+1)
-	sta	sp+1
+	sta	c_sp+1
 
     ; Check for interruptors
     ;lda     #<__INTERRUPTOR_COUNT__

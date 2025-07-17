@@ -67,10 +67,10 @@ Lxos:
 	pla
 	sta tmp2
 	ldy #0
-	lda (sp),y
+	lda (c_sp),y
 	sta ptr1
 	iny
-	lda (sp),y		;
+	lda (c_sp),y		;
 	sta ptr2		; (pr)=address of register block
 	lda BRKV+1
 	pha
