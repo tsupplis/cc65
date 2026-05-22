@@ -64,6 +64,9 @@ struct OptFuncDesc {
     PreCondFunc         PreCond;        /* Precondition predicate pointer */
 };
 
+/* Termination for OptFuncDesc tables */
+#define OPTFUNCDESC_SENTINEL    { 0, 0, 0 }
+
 
 
 /*****************************************************************************/
@@ -72,41 +75,28 @@ struct OptFuncDesc {
 
 
 
-static int SameRegAValueAtOp (const StackOpData* D, CodeEntry* OpEntry)
+static int SameRegAValueAtOp (const StackOpData* D)
 /* Check if Rhs Reg A at OpIndex == Lhs Reg A at PushIndex */
 {
-    CodeEntry* PushEntry;
-
-    CHECK (D->PushIndex >= 0);
-    PushEntry = CS_GetEntry (D->Code, D->PushIndex);
+    CHECK (D->PushEntry != 0 && D->OpEntry != 0);
 
     return
-        RegValIsKnown (PushEntry->RI->In.RegA) &&
-        RegValIsKnown (OpEntry->RI->In.RegA) &&
-        PushEntry->RI->In.RegA == OpEntry->RI->In.RegA;
+        RegValIsKnown (D->PushEntry->RI->In.RegA) &&
+        RegValIsKnown (D->OpEntry->RI->In.RegA) &&
+        D->PushEntry->RI->In.RegA == D->OpEntry->RI->In.RegA;
 }
 
 
 
-static int SameRegXValueAtOp (const StackOpData* D, CodeEntry* OpEntry)
+static int SameRegXValueAtOp (const StackOpData* D)
 /* Check if Rhs Reg X at OpIndex == Lhs Reg X at PushIndex */
 {
-    CodeEntry* PushEntry;
-
-    CHECK (D->PushIndex >= 0);
-    PushEntry = CS_GetEntry (D->Code, D->PushIndex);
-
-    /* ### This is a temporary workaround, removable in next phases. */
-    if (OpEntry == 0) {
-        /* Not provided; then OpIndex must be present */
-        CHECK (D->OpIndex >= 0);
-        OpEntry = CS_GetEntry (D->Code, D->OpIndex);
-    }
+    CHECK (D->PushEntry != 0 && D->OpEntry != 0);
 
     return
-        RegValIsKnown (PushEntry->RI->In.RegX) &&
-        RegValIsKnown (OpEntry->RI->In.RegX) &&
-        PushEntry->RI->In.RegX == OpEntry->RI->In.RegX;
+        RegValIsKnown (D->PushEntry->RI->In.RegX) &&
+        RegValIsKnown (D->OpEntry->RI->In.RegX) &&
+        D->PushEntry->RI->In.RegX == D->OpEntry->RI->In.RegX;
 }
 
 
@@ -351,7 +341,7 @@ static int WithSameXMustHaveTempZP (const StackOpData* D)
 ** ZP with AddStoreLhsA() or similar.
 */
 {
-    return SameRegXValueAtOp (D, 0) && HaveUnusedTempZPLoc (D);
+    return SameRegXValueAtOp (D) && HaveUnusedTempZPLoc (D);
 }
 
 
@@ -365,7 +355,7 @@ static int WithSameXCanUseRemovableRhsWithTempZP (const StackOpData* D)
 ** and a temp ZP location is available.
 */
 {
-    return SameRegXValueAtOp (D, 0) && RhsIsDirectLoad (D) &&
+    return SameRegXValueAtOp (D) && RhsIsDirectLoad (D) &&
            RhsIsRemovable (D) && HaveUnusedTempZPLoc (D);
 }
 
@@ -436,9 +426,9 @@ static unsigned Opt_toseqax_tosneax (StackOpData* D, const char* BoolTransformer
         X = NewCodeEntry (OP65_CMP, LoadA->AM, LoadA->Arg, 0, D->OpEntry->LI);
         InsertEntry (D, X, D->IP++);
 
-        /* Rhs load entries must be removed */
-        D->Rhs.X.Flags |= LI_REMOVE;
-        D->Rhs.A.Flags |= LI_REMOVE;
+        /* Rhs load entries must be removed because Lhs must be in effect */
+        D->Rhs.X.Flags |= (LI_REMOVE | LI_MUST_REMOVE);
+        D->Rhs.A.Flags |= (LI_REMOVE | LI_MUST_REMOVE);
 
     } else if (RhsIsRemovable (D)) {
 
@@ -453,6 +443,10 @@ static unsigned Opt_toseqax_tosneax (StackOpData* D, const char* BoolTransformer
 
         /* Add operand for high byte */
         AddOpHigh (D, OP65_CMP, &D->Rhs, 0);
+
+        /* Rhs load entries must be removed because Lhs must be in effect */
+        D->Rhs.X.Flags |= LI_MUST_REMOVE;
+        D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     } else {
 
@@ -1018,9 +1012,9 @@ static unsigned Opt_tosgeax (StackOpData* D)
     X = NewCodeEntry (OP65_ROL, AM65_ACC, "a", 0, D->OpEntry->LI);
     InsertEntry (D, X, D->IP++);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the tosgeax function */
     RemoveRemainders (D);
@@ -1075,9 +1069,9 @@ static unsigned Opt_tosltax (StackOpData* D)
     X = NewCodeEntry (OP65_ROL, AM65_ACC, "a", 0, D->OpEntry->LI);
     InsertEntry (D, X, D->IP++);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the tosltax function */
     RemoveRemainders (D);
@@ -1158,9 +1152,9 @@ static unsigned Opt_tossubax (StackOpData* D)
     /* Add code for high operand */
     AddOpHigh (D, OP65_SBC, &D->Rhs, 1);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the tossubax function */
     RemoveRemainders (D);
@@ -1200,9 +1194,9 @@ static unsigned Opt_tosugeax (StackOpData* D)
     X = NewCodeEntry (OP65_ROL, AM65_ACC, "a", 0, D->OpEntry->LI);
     InsertEntry (D, X, D->IP++);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the tosugeax function */
     RemoveRemainders (D);
@@ -1246,9 +1240,9 @@ static unsigned Opt_tosugtax (StackOpData* D)
     X = NewCodeEntry (OP65_JSR, AM65_ABS, "boolugt", 0, D->OpEntry->LI);
     InsertEntry (D, X, D->IP++);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the operator function */
     RemoveRemainders (D);
@@ -1292,9 +1286,9 @@ static unsigned Opt_tosuleax (StackOpData* D)
     X = NewCodeEntry (OP65_JSR, AM65_ABS, "boolule", 0, D->OpEntry->LI);
     InsertEntry (D, X, D->IP++);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the operator function */
     RemoveRemainders (D);
@@ -1326,9 +1320,9 @@ static unsigned Opt_tosultax (StackOpData* D)
     X = NewCodeEntry (OP65_JSR, AM65_ABS, "boolult", 0, D->OpEntry->LI);
     InsertEntry (D, X, D->IP++);
 
-    /* Rhs load entries must be removed */
-    D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    /* Rhs load entries must be removed because Lhs must be in effect */
+    D->Rhs.X.Flags |= LI_MUST_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the operator function */
     RemoveRemainders (D);
@@ -1396,8 +1390,8 @@ static unsigned Opt_a_tosbitwise (StackOpData* D, opc_t OPC)
         X = NewCodeEntry (OPC, D->Rhs.A.LoadEntry->AM, D->Rhs.A.LoadEntry->Arg, 0, D->OpEntry->LI);
         InsertEntry (D, X, D->IP++);
 
-        /* Rhs load entries must be removed */
-        D->Rhs.A.Flags |= LI_REMOVE;
+        /* Rhs A load must be removed because Lhs must be in effect */
+        D->Rhs.A.Flags |= (LI_REMOVE | LI_MUST_REMOVE);
 
     } else if (RegIsDirectNonStackLoaded (&D->Lhs.A)) {
 
@@ -1419,12 +1413,10 @@ static unsigned Opt_a_tosbitwise (StackOpData* D, opc_t OPC)
         InsertEntry (D, X, D->IP++);
     }
 
-    /* ### Bug to come: there are dangerous Rhs X removal attempts here.
-    **  Runtime function calls can be "loads", and must be treated as a
-    **  single A/X unit, so removal of X load alone is not valid.
-    **  This can be solved with an additional "removable Rhs" test, or
-    **  by simply not forcing the LI_REMOVE flag and letting other optimizers
-    **  remove any unnecessary loads.
+    /* Note: Eager Rhs X removals here can sometimes produce slightly worse
+    **  code after all other optimizers have run. This may need a general
+    **  study of which is better: eager removal, or letting other optimizers
+    **  take care of unneeded loads.
     */
     /* Do high-byte operation only when its result is used */
     if ((GetRegInfo (D->Code, D->IP, REG_X) & REG_X) != 0) {
@@ -1433,10 +1425,12 @@ static unsigned Opt_a_tosbitwise (StackOpData* D, opc_t OPC)
             /* Since this is a "same X" EOR, the result is always 0. */
             X = NewCodeEntry (OP65_LDX, AM65_IMM, MakeHexArg (0), 0, D->Rhs.X.ChgEntry->LI);
             InsertEntry (D, X, D->IP++);
+
+            /* Rhs X load may be removed (but this is not a demand) */
             D->Rhs.X.Flags |= LI_REMOVE;
         }
     } else {
-        /* Rhs load entries may be removed */
+        /* Rhs X load may be removed (but this is not a demand) */
         D->Rhs.X.Flags |= LI_REMOVE;
     }
 
@@ -1464,7 +1458,7 @@ static unsigned Opt_a_toscmpbool (StackOpData* D, const char* BoolTransformer)
 
         /* Rhs low-byte load must be removed and hi-byte load may be removed */
         D->Rhs.X.Flags |= LI_REMOVE;
-        D->Rhs.A.Flags |= LI_REMOVE;
+        D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     } else if (RegIsDirectLoaded (&D->Lhs.A)) {
         /* If the lhs is direct (but not stack relative), encode compares with lhs,
@@ -1545,7 +1539,7 @@ static unsigned Opt_a_tosicmp (StackOpData* D)
     RegInfo*    RI;
     const char* Arg;
 
-    if (!SameRegAValueAtOp (D, D->OpEntry)) {
+    if (!SameRegAValueAtOp (D)) {
         /* Because of SameRegAValueAtOp */
         CHECK (D->Rhs.A.ChgIndex >= 0);
 
@@ -1604,7 +1598,9 @@ static unsigned Opt_a_tosicmp (StackOpData* D)
                 InsertEntry (D, X, D->IP++);
             }
 
-            /* RHS may be removed */
+            /* RHS may be removed, but it is not a demand because Lhs was
+            ** reloaded at Op and is in effect.
+            */
             D->Rhs.A.Flags |= LI_REMOVE;
             D->Rhs.X.Flags |= LI_REMOVE;
         }
@@ -1703,9 +1699,11 @@ static unsigned Opt_a_tossub (StackOpData* D)
         InsertEntry (D, X, D->IP++);
     }
 
-    /* Rhs load entries must be removed */
+    /* Rhs low-byte load must be removed (because Lhs must be in effect)
+    ** and hi-byte load may be removed.
+    */
     D->Rhs.X.Flags |= LI_REMOVE;
-    D->Rhs.A.Flags |= LI_REMOVE;
+    D->Rhs.A.Flags |= LI_MUST_REMOVE;
 
     /* Remove the push and the call to the tossubax function */
     RemoveRemainders (D);
@@ -1762,77 +1760,23 @@ static unsigned Opt_a_tosxor (StackOpData* D)
 
 
 
-/* Note: A subopt MUST commit to every use case (precondition) that it
-**  advertises here. Unhandled advertised cases will result in stack corruption,
-**  because OptStackOps() is committed at the point of call and cannot back out.
-*/
-/* The first column of these two tables must be sorted in lexical order */
-
-/* CAUTION: table must be sorted for bsearch */
-static const OptFuncDesc FuncTable[] = {
-/* BEGIN SORTED.SH */
-    { "___bzero",   Opt___bzero,   WithAXlt100CanUseRegVarOrTempZP       },
-    { "staspidx",   Opt_staspidx,  CanUseRegVarOrTempZP                  },
-    { "staxspidx",  Opt_staxspidx, WithUnusedACanUseRegVarOrTempZP       },
-    { "tosaddax",   Opt_tosaddax,  MustHaveTempZP                        },
-    { "tosandax",   Opt_tosandax,  MustHaveTempZP                        },
-    { "tosaslax",   Opt_tosaslax,  MustHaveTempZP                        },
-    { "tosasrax",   Opt_tosasrax,  MustHaveTempZP                        },
-    { "toseqax",    Opt_toseqax,   CanUseDirectWithRemovableRhsAndTempZP },
-    { "tosgeax",    Opt_tosgeax,   CanUseRemovableRhsWithTempZP          },
-    { "tosltax",    Opt_tosltax,   CanUseRemovableRhsWithTempZP          },
-    { "tosneax",    Opt_tosneax,   CanUseDirectWithRemovableRhsAndTempZP },
-    { "tosorax",    Opt_tosorax,   MustHaveTempZP                        },
-    { "tosshlax",   Opt_tosshlax,  MustHaveTempZP                        },
-    { "tosshrax",   Opt_tosshrax,  MustHaveTempZP                        },
-    { "tossubax",   Opt_tossubax,  CanUseRemovableRhsWithTempZP          },
-    { "tosugeax",   Opt_tosugeax,  CanUseRemovableRhsWithTempZP          },
-    { "tosugtax",   Opt_tosugtax,  CanUseRemovableRhsWithTempZP          },
-    { "tosuleax",   Opt_tosuleax,  CanUseRemovableRhsWithTempZP          },
-    { "tosultax",   Opt_tosultax,  CanUseRemovableRhsWithTempZP          },
-    { "tosxorax",   Opt_tosxorax,  MustHaveTempZP                        },
-/* END SORTED.SH */
-};
-
-/* CAUTION: table must be sorted for bsearch */
-static const OptFuncDesc FuncRegATable[] = {
-/* BEGIN SORTED.SH */
-    { "tosandax",   Opt_a_tosand,  WithSameXCanUseRemovableRhsWithTempZP },
-    { "toseqax",    Opt_a_toseq,   WithSameXMustHaveTempZP               },
-    { "tosgeax",    Opt_a_tosuge,  WithSameXMustHaveTempZP               },
-    { "tosgtax",    Opt_a_tosugt,  WithSameXMustHaveTempZP               },
-    { "tosicmp",    Opt_a_tosicmp, WithSameXMustHaveTempZP               },
-    { "tosleax",    Opt_a_tosule,  WithSameXMustHaveTempZP               },
-    { "tosltax",    Opt_a_tosult,  WithSameXMustHaveTempZP               },
-    { "tosneax",    Opt_a_tosne,   WithSameXMustHaveTempZP               },
-    { "tosorax",    Opt_a_tosor,   WithSameXCanUseRemovableRhsWithTempZP },
-    { "tossubax",   Opt_a_tossub,  WithSameXCanUseRemovableRhsWithTempZP },
-    { "tosugeax",   Opt_a_tosuge,  WithSameXMustHaveTempZP               },
-    { "tosugtax",   Opt_a_tosugt,  WithSameXMustHaveTempZP               },
-    { "tosuleax",   Opt_a_tosule,  WithSameXMustHaveTempZP               },
-    { "tosultax",   Opt_a_tosult,  WithSameXMustHaveTempZP               },
-    { "tosxorax",   Opt_a_tosxor,  WithSameXCanUseRemovableRhsWithTempZP },
-/* END SORTED.SH */
-};
-
-#define FUNC_COUNT(Table) (sizeof(Table) / sizeof(Table[0]))
-
-
-
-static int CmpFunc (const void* Key, const void* Func)
-/* Compare function for bsearch */
-{
-    return strcmp (Key, ((const OptFuncDesc*) Func)->Name);
-}
-
-
-
-static const OptFuncDesc* FindFunc (const OptFuncDesc FuncTable[], size_t Count, const char* Name)
+static const OptFuncDesc* FindFunc (const OptFuncDesc FuncTable[], const char* Name)
 /* Find the function with the given name. Return a pointer to the table entry
 ** or NULL if the function was not found.
 */
 {
-    return bsearch (Name, FuncTable, Count, sizeof(OptFuncDesc), CmpFunc);
+    const OptFuncDesc* Desc;
+
+    /* Scan through table and find OptFuncDesc matching the Name */
+    for (Desc = FuncTable; Desc->Name != 0; ++Desc) {
+        if (strcmp (Name, Desc->Name) == 0) {
+            /* Found a match */
+            return Desc;
+        }
+    }
+
+    /* Not found */
+    return 0;
 }
 
 
@@ -1860,13 +1804,13 @@ static int PreCondOk (StackOpData* D)
 
 
 
-/*****************************************************************************/
-/*                                   Code                                    */
-/*****************************************************************************/
+/* Note: A subopt MUST commit to every use case (precondition) that it
+**  advertises in its FuncTable. Unhandled advertised cases will result in
+**  stack corruption, because OptStackOps() is committed at the point of call
+**  and cannot back out.
+*/
 
-
-
-unsigned OptStackOps (CodeSeg* S)
+static unsigned OptStackOps (CodeSeg* S, const OptFuncDesc FuncTable[])
 /* Optimize operations that take operands via the stack */
 {
     unsigned        Changes = 0;        /* Number of changes in one run */
@@ -1970,20 +1914,7 @@ unsigned OptStackOps (CodeSeg* S)
                     /* Subroutine call: Check if this is one of the functions,
                     ** we're going to replace.
                     */
-                    /* ### Note: A-only subopts are greedy here. When an A-only
-                    **  subopt exists (by name), only its preconditions are ever
-                    **  checked. There is no fallback to the full A/X subopts.
-                    **  When the A-only preconditions fail, good A/X cases are
-                    **  left unoptimized.
-                    **  The FuncTables should be merged into a single precondition
-                    **  system.
-                    */
-                    if (SameRegXValueAtOp (&Data, E)) {
-                        Data.OptFunc = FindFunc (FuncRegATable, FUNC_COUNT (FuncRegATable), E->Arg);
-                    }
-                    if (Data.OptFunc == 0) {
-                        Data.OptFunc = FindFunc (FuncTable, FUNC_COUNT (FuncTable), E->Arg);
-                    }
+                    Data.OptFunc = FindFunc (FuncTable, E->Arg);
                     if (Data.OptFunc) {
                         /* Disallow removing Rhs loads if the registers are used */
                         SetIfOperandLoadUnremovable (&Data.Rhs, Data.UsedRegs);
@@ -2157,4 +2088,193 @@ unsigned OptStackOps (CodeSeg* S)
 
     /* Return the number of changes made */
     return Changes;
+}
+
+
+
+unsigned OptBZero (CodeSeg* S)
+/* Optimize __bzero operations that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "___bzero",   Opt___bzero,   WithAXlt100CanUseRegVarOrTempZP       },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptPtrStore4 (CodeSeg* S)
+/* Optimize staspidx/staxspidx operations that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "staspidx",   Opt_staspidx,  CanUseRegVarOrTempZP                  },
+        { "staxspidx",  Opt_staxspidx, WithUnusedACanUseRegVarOrTempZP       },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackArith1 (CodeSeg* S)
+/* Optimize arithmetic operations that take operands via the stack
+** where X reg has the same value on left and right sides.
+*/
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tossubax",   Opt_a_tossub,  WithSameXCanUseRemovableRhsWithTempZP },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackArith2 (CodeSeg* S)
+/* Optimize arithmetic operations (add/sub) that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosaddax",   Opt_tosaddax,  MustHaveTempZP                        },
+        { "tossubax",   Opt_tossubax,  CanUseRemovableRhsWithTempZP          },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackBitwise1 (CodeSeg* S)
+/* Optimize bitwise operations that take operands via the stack
+** where X reg has the same value on left and right sides.
+*/
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosandax",   Opt_a_tosand,  WithSameXCanUseRemovableRhsWithTempZP },
+        { "tosorax",    Opt_a_tosor,   WithSameXCanUseRemovableRhsWithTempZP },
+        { "tosxorax",   Opt_a_tosxor,  WithSameXCanUseRemovableRhsWithTempZP },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackBitwise2 (CodeSeg* S)
+/* Optimize bitwise operations (and/or/xor) that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosandax",   Opt_tosandax,  MustHaveTempZP                        },
+        { "tosorax",    Opt_tosorax,   MustHaveTempZP                        },
+        { "tosxorax",   Opt_tosxorax,  MustHaveTempZP                        },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackEqOps1 (CodeSeg* S)
+/* Optimize ==/!= operators that take operands via the stack
+** where X reg has the same value on left and right sides.
+*/
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "toseqax",    Opt_a_toseq,   WithSameXMustHaveTempZP               },
+        { "tosneax",    Opt_a_tosne,   WithSameXMustHaveTempZP               },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackEqOps2 (CodeSeg* S)
+/* Optimize ==/!= operators that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "toseqax",    Opt_toseqax,   CanUseDirectWithRemovableRhsAndTempZP },
+        { "tosneax",    Opt_tosneax,   CanUseDirectWithRemovableRhsAndTempZP },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackCmpOps1 (CodeSeg* S)
+/* Optimize compare operators that take operands via the stack
+** where X reg has the same value on left and right sides.
+*/
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosgeax",    Opt_a_tosuge,  WithSameXMustHaveTempZP               },
+        { "tosgtax",    Opt_a_tosugt,  WithSameXMustHaveTempZP               },
+        { "tosleax",    Opt_a_tosule,  WithSameXMustHaveTempZP               },
+        { "tosltax",    Opt_a_tosult,  WithSameXMustHaveTempZP               },
+        { "tosugeax",   Opt_a_tosuge,  WithSameXMustHaveTempZP               },
+        { "tosugtax",   Opt_a_tosugt,  WithSameXMustHaveTempZP               },
+        { "tosuleax",   Opt_a_tosule,  WithSameXMustHaveTempZP               },
+        { "tosultax",   Opt_a_tosult,  WithSameXMustHaveTempZP               },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackCmpOps2 (CodeSeg* S)
+/* Optimize compare operators that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosgeax",    Opt_tosgeax,   CanUseRemovableRhsWithTempZP          },
+        { "tosltax",    Opt_tosltax,   CanUseRemovableRhsWithTempZP          },
+        { "tosugeax",   Opt_tosugeax,  CanUseRemovableRhsWithTempZP          },
+        { "tosugtax",   Opt_tosugtax,  CanUseRemovableRhsWithTempZP          },
+        { "tosuleax",   Opt_tosuleax,  CanUseRemovableRhsWithTempZP          },
+        { "tosultax",   Opt_tosultax,  CanUseRemovableRhsWithTempZP          },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackShifts (CodeSeg* S)
+/* Optimize shift operations that take operands via the stack */
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosaslax",   Opt_tosaslax,  MustHaveTempZP                        },
+        { "tosasrax",   Opt_tosasrax,  MustHaveTempZP                        },
+        { "tosshlax",   Opt_tosshlax,  MustHaveTempZP                        },
+        { "tosshrax",   Opt_tosshrax,  MustHaveTempZP                        },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
+}
+
+
+
+unsigned OptStackICmp1 (CodeSeg* S)
+/* Optimize tosicmp operations where X reg has the same value on
+** left and right sides.
+*/
+{
+    static const OptFuncDesc FuncTable[] = {
+        { "tosicmp",    Opt_a_tosicmp, WithSameXMustHaveTempZP               },
+        OPTFUNCDESC_SENTINEL    /* Null-terminated list */
+    };
+
+    return OptStackOps (S, FuncTable);
 }
