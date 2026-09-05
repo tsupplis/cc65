@@ -131,6 +131,7 @@ static SymTable* NewSymTable (SymTable* Parent, const StrBuf* Name)
     S->Childs       = 0;
     S->Label        = 0;
     S->Spans        = AUTO_COLLECTION_INITIALIZER;
+    S->OpenSpans    = AUTO_COLLECTION_INITIALIZER;
     S->Id           = ScopeCount++;
     S->Flags        = ST_NONE;
     S->AddrSize     = ADDR_SIZE_DEFAULT;
@@ -138,6 +139,7 @@ static SymTable* NewSymTable (SymTable* Parent, const StrBuf* Name)
     S->Level        = Level;
     S->TableSlots   = Slots;
     S->TableEntries = 0;
+    S->Size         = 0;
     S->Parent       = Parent;
     S->Name         = GetStrBufId (Name);
     while (Slots--) {
@@ -215,7 +217,10 @@ void SymEnterLevel (const StrBuf* ScopeName, unsigned char Type,
         CurrentScope = SymFindScope (CurrentScope, ScopeName, SYM_ALLOC_NEW);
 
         /* Check if the scope has been defined before */
-        if (CurrentScope->Flags & ST_DEFINED) {
+        if ((CurrentScope->Flags & ST_DEFINED) &&
+            !(MergeScopes && Type == SCOPE_SCOPE && ScopeLabel == 0 &&
+              CurrentScope->Type == SCOPE_SCOPE &&
+              CurrentScope->Label == 0)) {
             Error ("Duplicate scope `%m%p'", ScopeName);
         }
         /* Open the scope as we are entering it */
@@ -238,7 +243,7 @@ void SymEnterLevel (const StrBuf* ScopeName, unsigned char Type,
     ** space in any segment).
     */
     if (CurrentScope->Type <= SCOPE_HAS_DATA) {
-        OpenSpanList (&CurrentScope->Spans);
+        OpenSpanList (&CurrentScope->OpenSpans);
     }
 }
 
@@ -251,22 +256,25 @@ void SymLeaveLevel (void)
     ** open the spans.
     */
     if (CurrentScope->Type <= SCOPE_HAS_DATA) {
-        CloseSpanList (&CurrentScope->Spans);
+        CloseSpanList (&CurrentScope->OpenSpans);
     }
 
-    /* If we have spans, the first one is the segment that was active, when the
-    ** scope was opened. Set the size of the scope to the number of data bytes
-    ** emitted into this segment. If we have an owner symbol set the size of
-    ** this symbol, too.
+    /* If we have spans, the first one is the segment that was active when the
+    ** scope was opened. Add its data bytes to the scope size. If we have an
+    ** owner symbol, set its size, too.
     */
-    if (CollCount (&CurrentScope->Spans) > 0) {
-        const Span* S = CollAtUnchecked (&CurrentScope->Spans, 0);
-        unsigned long Size = GetSpanSize (S);
-        DefSizeOfScope (CurrentScope, Size);
+    if (CollCount (&CurrentScope->OpenSpans) > 0) {
+        const Span* S = CollAtUnchecked (&CurrentScope->OpenSpans, 0);
+        CurrentScope->Size += GetSpanSize (S);
+        DefSizeOfScope (CurrentScope, CurrentScope->Size);
         if (CurrentScope->Label) {
-            DefSizeOfSymbol (CurrentScope->Label, Size);
+            DefSizeOfSymbol (CurrentScope->Label, CurrentScope->Size);
         }
     }
+
+    /* Keep completed spans and clear the list for a possible reopening. */
+    CollTransfer (&CurrentScope->Spans, &CurrentScope->OpenSpans);
+    CollDeleteAll (&CurrentScope->OpenSpans);
 
     /* Mark the scope as closed */
     CurrentScope->Flags |= ST_CLOSED;

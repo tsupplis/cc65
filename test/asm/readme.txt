@@ -30,6 +30,14 @@ listings, custom linker configuration, etc. as needed.
 Refer to listing/readme.txt
 
 
+scope-merge:
+------------
+
+Tests the --merge-scopes command line option, including scope fragments in
+the same source file and in include files, enabling with .feature, nested
+namespaces, scope sizes, and duplicate symbols.
+
+
 val:
 ----
 
