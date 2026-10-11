@@ -30,8 +30,12 @@ CBMS = c128   \
        plus4  \
        vic20
 
-GEOS = geos-apple \
-       geos-cbm
+GEOS = geos-apple   \
+       geos-cbm     \
+       geos-c-da    \
+       geos-c-prn   \
+       geos-c-in    \
+       geos-c-in128
 
 BBCS = bbc \
        bbcmaster
@@ -41,6 +45,7 @@ TARGETS = agat         \
           replica1     \
           apple2       \
           apple2enh    \
+          apple3       \
           atari        \
           atarixl      \
           atari2600    \
@@ -205,18 +210,30 @@ else ifeq ($(TARGET),bbcmaster)
   SRCDIR = bbc
   OBJPRX = bbcm
   DRVPFX = bbcme
+else ifeq ($(TARGET),geos-c-da)
+  SRCDIR = geos-cbm
+else ifeq ($(TARGET),geos-c-prn)
+  SRCDIR = geos-cbm
+else ifeq ($(TARGET),geos-c-in)
+  SRCDIR = geos-cbm
+else ifeq ($(TARGET),geos-c-in128)
+  SRCDIR = geos-cbm
 else
   SRCDIR = $(TARGET)
 endif
 
 SRCDIRS = $(SRCDIR)
 
+ifeq ($(TARGET),geos-c-da)
+  SRCDIRS := geos-c-da $(SRCDIRS)
+endif
+
 ifeq ($(TARGET),$(filter $(TARGET),$(CBMS)))
   SRCDIRS += cbm
 endif
 
 ifeq ($(TARGET),$(filter $(TARGET),$(GEOS)))
-  SRCDIRS += $(addprefix $(TARGET)/,  $(GEOSDIRS))
+  SRCDIRS += $(addprefix $(SRCDIR)/,  $(GEOSDIRS))
   SRCDIRS += $(addprefix geos-common/,$(GEOSDIRS))
 endif
 

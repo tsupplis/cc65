@@ -76,6 +76,7 @@ typedef enum {
     TGT_APPLE2ENH,
     TGT_APPLE1,
     TGT_REPLICA1,
+    TGT_APPLE3,
     TGT_GEOS_CBM,
     TGT_CREATIVISION,
     TGT_GEOS_APPLE,
@@ -96,6 +97,10 @@ typedef enum {
     TGT_KIM1,
     TGT_RP6502,
     TGT_AGAT,
+    TGT_GEOS_CBM_DA,
+    TGT_GEOS_CBM_PRINTER,
+    TGT_GEOS_CBM_INPUT,
+    TGT_GEOS_CBM_INPUT128,
     TGT_COUNT                   /* Number of target systems */
 } target_t;
 
